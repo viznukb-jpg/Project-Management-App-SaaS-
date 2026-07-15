@@ -7,21 +7,38 @@ import {
   pgEnum,
   jsonb,
   integer,
-  primaryKey
+  primaryKey,
+  unique,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ---- ENUMS ----
 export const roleEnum = pgEnum('role', ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER']);
-export const projectStatusEnum = pgEnum('project_status', ['ACTIVE', 'ARCHIVED', 'COMPLETED']);
-export const taskStatusEnum = pgEnum('task_status', ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']);
-export const taskPriorityEnum = pgEnum('task_priority', ['LOW', 'MEDIUM', 'HIGH', 'URGENT']);
+export const projectStatusEnum = pgEnum('project_status', [
+  'ACTIVE',
+  'ARCHIVED',
+  'COMPLETED',
+]);
+export const taskStatusEnum = pgEnum('task_status', [
+  'TODO',
+  'IN_PROGRESS',
+  'REVIEW',
+  'DONE',
+]);
+export const taskPriorityEnum = pgEnum('task_priority', [
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'URGENT',
+]);
 
 // ---- USERS (Next-Auth / Better-Auth compatible) ----
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
   name: text('name'),
   email: text('email').unique(),
+  passwordHash: text('password_hash'),
   emailVerified: timestamp('emailVerified', { mode: 'date' }),
   image: text('image'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -67,31 +84,36 @@ export const verificationTokens = pgTable(
     token: text('token').notNull(),
     expires: timestamp('expires', { mode: 'date' }).notNull(),
   },
-  (vt) => [
-    primaryKey({ columns: [vt.identifier, vt.token] }),
-  ]
+  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
 );
 
 // ---- WORKSPACES ----
 export const workspaces = pgTable('workspaces', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
+  ownerId: text('owner_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const workspaceMembers = pgTable('workspace_members', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  role: roleEnum('role').default('MEMBER').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const workspaceMembers = pgTable(
+  'workspace_members',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: roleEnum('role').default('MEMBER').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [unique('ws_member_uq').on(t.workspaceId, t.userId)]
+);
 
 // ---- PROJECTS ----
 export const projects = pgTable('projects', {
@@ -116,7 +138,9 @@ export const tasks = pgTable('tasks', {
   description: text('description'),
   status: taskStatusEnum('status').default('TODO').notNull(),
   priority: taskPriorityEnum('priority').default('MEDIUM').notNull(),
-  assigneeId: text('assignee_id').references(() => users.id, { onDelete: 'set null' }),
+  assigneeId: text('assignee_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
   position: integer('position').default(0).notNull(), // Required for Kanban Drag & Drop ordering
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -149,16 +173,22 @@ export const notifications = pgTable('notifications', {
 });
 
 // ---- AUDIT LOGS ----
-export const auditLogs = pgTable('audit_logs', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
-  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
-  action: text('action').notNull(),
-  metadata: jsonb('metadata'), // Extra payload about the action
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const auditLogs = pgTable(
+  'audit_logs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    action: text('action').notNull(),
+    metadata: jsonb('metadata'), // Extra payload about the action
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => [index('audit_log_user_date_idx').on(t.userId, t.createdAt)]
+);
 
 // ---- TASK ATTACHMENTS (Bonus) ----
 export const taskAttachments = pgTable('task_attachments', {
@@ -193,16 +223,19 @@ export const workspacesRelations = relations(workspaces, ({ many }) => ({
   auditLogs: many(auditLogs),
 }));
 
-export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
-  workspace: one(workspaces, {
-    fields: [workspaceMembers.workspaceId],
-    references: [workspaces.id],
-  }),
-  user: one(users, {
-    fields: [workspaceMembers.userId],
-    references: [users.id],
-  }),
-}));
+export const workspaceMembersRelations = relations(
+  workspaceMembers,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [workspaceMembers.workspaceId],
+      references: [workspaces.id],
+    }),
+    user: one(users, {
+      fields: [workspaceMembers.userId],
+      references: [users.id],
+    }),
+  })
+);
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
   workspace: one(workspaces, {
@@ -254,13 +287,16 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
 }));
 
-export const taskAttachmentsRelations = relations(taskAttachments, ({ one }) => ({
-  task: one(tasks, {
-    fields: [taskAttachments.taskId],
-    references: [tasks.id],
-  }),
-  user: one(users, {
-    fields: [taskAttachments.userId],
-    references: [users.id],
-  }),
-}));
+export const taskAttachmentsRelations = relations(
+  taskAttachments,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskAttachments.taskId],
+      references: [tasks.id],
+    }),
+    user: one(users, {
+      fields: [taskAttachments.userId],
+      references: [users.id],
+    }),
+  })
+);
