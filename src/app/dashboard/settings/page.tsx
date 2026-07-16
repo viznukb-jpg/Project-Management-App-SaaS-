@@ -7,6 +7,22 @@ import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/Table';
+import { Badge } from '@/shared/ui/Badge';
 
 export default function WorkspaceSettingsPage() {
   const { activeWorkspaceId } = useWorkspaceStore();
@@ -170,17 +186,19 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
           onChange={(e) => setEmail(e.target.value)}
           className="flex-1"
         />
-        <select
+        <Select
           value={role}
-          onChange={(e) =>
-            setRole(e.target.value as 'ADMIN' | 'MEMBER' | 'VIEWER')
-          }
-          className="h-10 px-3 py-2 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onValueChange={(val) => setRole(val as 'ADMIN' | 'MEMBER' | 'VIEWER')}
         >
-          <option value="ADMIN">Admin</option>
-          <option value="MEMBER">Member</option>
-          <option value="VIEWER">Viewer</option>
-        </select>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="MEMBER">Member</SelectItem>
+            <SelectItem value="VIEWER">Viewer</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
           onClick={() => inviteMutation.mutate()}
           disabled={!email || inviteMutation.isPending}
@@ -200,37 +218,35 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
             No members found.
           </div>
         ) : (
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 font-medium">User</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {members?.map(
                 (member: {
                   id: string;
                   role: string;
                   user: { name: string; email: string };
                 }) => (
-                  <tr key={member.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3">
+                  <TableRow key={member.id}>
+                    <TableCell>
                       <div className="font-medium text-slate-900">
                         {member.user.name}
                       </div>
                       <div className="text-slate-500">{member.user.email}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                        {member.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{member.role}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
                       {member.role !== 'OWNER' && (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => {
@@ -246,12 +262,12 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
                           Remove
                         </Button>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>
