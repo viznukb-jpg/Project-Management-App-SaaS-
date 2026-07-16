@@ -16,43 +16,57 @@ const db = drizzle(client, { schema });
 async function seed() {
   console.log('Seeding database...');
 
-  // 1. Create 5 Users
-  console.log('Creating users...');
-  const users = await db
-    .insert(schema.users)
-    .values([
-      {
-        id: uuidv4(),
-        name: 'Alice',
-        email: 'alice@example.com',
-        passwordHash: 'hashed_password',
-      },
-      {
-        id: uuidv4(),
-        name: 'Bob',
-        email: 'bob@example.com',
-        passwordHash: 'hashed_password',
-      },
-      {
-        id: uuidv4(),
-        name: 'Charlie',
-        email: 'charlie@example.com',
-        passwordHash: 'hashed_password',
-      },
-      {
-        id: uuidv4(),
-        name: 'David',
-        email: 'david@example.com',
-        passwordHash: 'hashed_password',
-      },
-      {
-        id: uuidv4(),
-        name: 'Eve',
-        email: 'eve@example.com',
-        passwordHash: 'hashed_password',
-      },
-    ])
-    .returning();
+  // Clear existing data (optional, to allow multiple runs)
+  console.log(
+    'Clearing old data (so you do not need to drop the DB manually)...'
+  );
+  await db.delete(schema.notifications);
+  await db.delete(schema.comments);
+  await db.delete(schema.taskAttachments);
+  await db.delete(schema.tasks);
+  await db.delete(schema.projects);
+  await db.delete(schema.workspaceMembers);
+  await db.delete(schema.workspaces);
+  await db.delete(schema.sessions);
+  await db.delete(schema.accounts);
+  await db.delete(schema.users);
+
+  // 1. Create 5 Users with standard passwords
+  console.log('Creating users (user1 to user5)...');
+  // This is 'password123' hashed using Better Auth's default crypto (scrypt)
+  const password =
+    'b42bfa4d826184d04a3a05c302b09da4:2c766f1281f8536d36abf14f9e1d48b9520d3998bf8fb594eb0ca694b2a9c3f9239452d21ebdb876fcaf3d8a0ac842287309e175b8338bf9383360fd2a1d393e';
+
+  const createdUsers = [];
+
+  for (let i = 1; i <= 5; i++) {
+    const userId = uuidv4();
+    const [user] = await db
+      .insert(schema.users)
+      .values({
+        id: userId,
+        name: `user${i}`,
+        email: `user${i}@example.com`,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    await db.insert(schema.accounts).values({
+      id: uuidv4(),
+      accountId: user.id,
+      providerId: 'credential',
+      userId: user.id,
+      password: password,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    createdUsers.push(user);
+  }
+
+  const users = createdUsers;
 
   // 2. Create 3 Workspaces
   console.log('Creating workspaces...');
@@ -88,7 +102,8 @@ async function seed() {
         workspaceId: workspaces[i % 3].id,
         name: `Project ${i + 1}`,
         description: `Description for project ${i + 1}`,
-        status: i % 3 === 0 ? 'COMPLETED' : 'ACTIVE',
+        status: (i % 3 === 0 ? 'COMPLETED' : 'ACTIVE') as
+          'ACTIVE' | 'ARCHIVED' | 'COMPLETED',
       }))
     )
     .returning();
@@ -118,31 +133,10 @@ async function seed() {
         status: statuses[i % 4],
         priority: priorities[i % 4],
         assigneeId: users[i % 5].id,
-        position: i % 5,
+        position: i * 1000,
       }))
     )
     .returning();
-
-  // 6. Create Comments
-  console.log('Creating comments...');
-  await db.insert(schema.comments).values(
-    Array.from({ length: 20 }).map((_, i) => ({
-      taskId: tasks[i % 50].id,
-      userId: users[i % 5].id,
-      content: `This is comment ${i + 1} on task.`,
-    }))
-  );
-
-  // 7. Create Notifications
-  console.log('Creating notifications...');
-  await db.insert(schema.notifications).values(
-    Array.from({ length: 15 }).map((_, i) => ({
-      userId: users[i % 5].id,
-      type: 'TASK_ASSIGNED',
-      message: `You have been assigned to Task ${i + 1}`,
-      read: i % 2 === 0,
-    }))
-  );
 
   console.log('Database seeding completed successfully!');
   await client.end();
