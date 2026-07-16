@@ -32,8 +32,19 @@ export function ProjectList() {
 
   if (!activeWorkspaceId) {
     return (
-      <div className="p-12 text-center text-slate-500 border border-dashed rounded-lg">
-        Please select a workspace to view projects.
+      <div className="p-12 text-center border border-dashed rounded-lg bg-slate-50">
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">
+          No Workspaces Found
+        </h2>
+        <p className="text-slate-500 mb-6">
+          You don't have any workspaces yet, or none is selected.
+        </p>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-white hover:bg-slate-900/90 h-10 px-4 py-2"
+        >
+          Go to Dashboard to Create Workspace
+        </Link>
       </div>
     );
   }

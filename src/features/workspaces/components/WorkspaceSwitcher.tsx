@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/shared/store/workspace';
+import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,7 +77,14 @@ export function WorkspaceSwitcher() {
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer text-blue-600 font-medium hover:text-blue-700 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-700">
+        <DropdownMenuItem
+          render={
+            <Link
+              href="/dashboard"
+              className="cursor-pointer text-blue-600 font-medium hover:text-blue-700 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-700 flex w-full"
+            />
+          }
+        >
           <Plus className="mr-2 h-4 w-4" /> Create Workspace
         </DropdownMenuItem>
       </DropdownMenuContent>

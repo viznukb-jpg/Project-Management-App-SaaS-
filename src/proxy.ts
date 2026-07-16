@@ -23,10 +23,6 @@ export function proxy(request: NextRequest) {
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
-
-    if (pathname === '/dashboard') {
-      return NextResponse.redirect(new URL('/dashboard/projects', request.url));
-    }
   }
 
   if (

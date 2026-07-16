@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
-import { updateWorkspace } from '@/server/services/workspace.service';
+import {
+  updateWorkspace,
+  deleteWorkspace,
+} from '@/server/services/workspace.service';
 
 export async function PATCH(
   req: NextRequest,
@@ -24,6 +27,26 @@ export async function PATCH(
       session.user.id
     );
     return NextResponse.json(updated);
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await deleteWorkspace(params.id, session.user.id);
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },

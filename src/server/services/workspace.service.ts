@@ -61,3 +61,19 @@ export async function updateWorkspace(
 
   return updated;
 }
+
+export async function deleteWorkspace(workspaceId: string, userId: string) {
+  const member = await db.query.workspaceMembers.findFirst({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.userId, userId)
+    ),
+  });
+
+  if (!member || member.role !== 'OWNER') {
+    throw new Error('Only the owner can delete the workspace');
+  }
+
+  await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
+  return true;
+}
