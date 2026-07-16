@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { createProjectSchema } from '@/features/projects/schemas';
+
+// (skip to POST method)
 export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -44,17 +47,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    if (!body.workspaceId || !body.name) {
+    const parsed = createProjectSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Workspace ID and name required' },
+        { error: parsed.error.flatten() },
         { status: 400 }
       );
     }
 
     const data = await createProject(
-      body.workspaceId,
-      body.name,
-      body.description,
+      parsed.data.workspaceId,
+      parsed.data.name,
+      parsed.data.description,
       session.user.id
     );
     return NextResponse.json(data);

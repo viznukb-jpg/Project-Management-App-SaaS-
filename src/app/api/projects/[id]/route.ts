@@ -26,6 +26,8 @@ export async function GET(
   }
 }
 
+import { updateProjectSchema } from '@/features/projects/schemas';
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -36,7 +38,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const data = await updateProject(params.id, body, session.user.id);
+    const parsed = updateProjectSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const data = await updateProject(params.id, parsed.data, session.user.id);
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(

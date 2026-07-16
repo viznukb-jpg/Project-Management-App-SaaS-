@@ -2,7 +2,7 @@ import { db } from '@/server/db';
 import { taskAttachments, tasks, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 
-async function checkTaskAccess(taskId: string, userId: string) {
+export async function checkTaskAccess(taskId: string, userId: string) {
   const task = await db.query.tasks.findFirst({
     where: eq(tasks.id, taskId),
     with: {

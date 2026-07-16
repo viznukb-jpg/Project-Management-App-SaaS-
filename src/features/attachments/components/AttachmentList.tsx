@@ -78,20 +78,39 @@ export function AttachmentList({
 
     try {
       setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${taskId}-${Math.random()}.${fileExt}`;
-      const filePath = `tasks/${fileName}`;
 
-      const { error } = await supabase.storage
-        .from('attachments') // Ensure this bucket exists in Supabase!
-        .upload(filePath, file);
+      // 1. Get Signed URL from server
+      const urlRes = await fetch('/api/attachments/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+      });
 
-      if (error) throw error;
+      if (!urlRes.ok) {
+        const errorData = await urlRes.json();
+        throw new Error(errorData.error || 'Failed to get upload URL');
+      }
 
+      const { token, path } = await urlRes.json();
+
+      // 2. Upload to Supabase using Signed URL
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .uploadToSignedUrl(path, token, file);
+
+      if (uploadError) throw uploadError;
+
+      // 3. Get Public URL
       const {
         data: { publicUrl },
-      } = supabase.storage.from('attachments').getPublicUrl(filePath);
+      } = supabase.storage.from('attachments').getPublicUrl(path);
 
+      // 4. Save metadata to our DB
       await addAttachmentMutation.mutateAsync({
         fileName: file.name,
         fileUrl: publicUrl,
@@ -99,9 +118,7 @@ export function AttachmentList({
       });
     } catch (error) {
       console.error('Upload error:', error);
-      alert(
-        'Failed to upload file. Make sure the "attachments" bucket exists and is public.'
-      );
+      alert(error instanceof Error ? error.message : 'Failed to upload file.');
     } finally {
       setUploading(false);
       if (e.target) e.target.value = '';
@@ -110,7 +127,7 @@ export function AttachmentList({
 
   return (
     <div className="space-y-4 mt-6">
-      <div className="flex items-center justify-between border-b pb-2">
+      <div className="flex justify-between items-center pb-2 border-b">
         <h3 className="font-semibold text-slate-800 text-sm">Attachments</h3>
         <div>
           <input
@@ -125,10 +142,10 @@ export function AttachmentList({
               variant="outline"
               size="sm"
               className="h-7 text-xs cursor-pointer"
-              asChild
+              render={<span />}
               disabled={uploading}
             >
-              <span>
+              <span className="flex items-center">
                 {uploading ? (
                   <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                 ) : (
@@ -143,14 +160,14 @@ export function AttachmentList({
 
       <div className="space-y-2">
         {isLoading ? (
-          <p className="text-sm text-slate-500">Loading attachments...</p>
+          <p className="text-slate-500 text-sm">Loading attachments...</p>
         ) : attachments?.length === 0 ? (
-          <p className="text-sm text-slate-500">No attachments.</p>
+          <p className="text-slate-500 text-sm">No attachments.</p>
         ) : (
           attachments?.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center justify-between bg-slate-50 p-2 rounded-md border border-slate-100 group"
+              className="group flex justify-between items-center bg-slate-50 p-2 border border-slate-100 rounded-md"
             >
               <a
                 href={attachment.fileUrl}
@@ -158,11 +175,11 @@ export function AttachmentList({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 overflow-hidden hover:text-blue-600 transition-colors"
               >
-                <div className="bg-white p-1.5 rounded shadow-sm">
+                <div className="bg-white shadow-sm p-1.5 rounded">
                   <Download size={14} className="text-slate-400" />
                 </div>
                 <div className="flex flex-col overflow-hidden">
-                  <span className="text-sm font-medium truncate text-slate-700">
+                  <span className="font-medium text-slate-700 text-sm truncate">
                     {attachment.fileName}
                   </span>
                   <span className="text-[10px] text-slate-400">
@@ -177,7 +194,7 @@ export function AttachmentList({
               {currentUserId === attachment.user.id && (
                 <button
                   onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
-                  className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                  className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 transition-opacity"
                   disabled={deleteAttachmentMutation.isPending}
                 >
                   <Trash2 size={14} />

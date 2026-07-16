@@ -3,6 +3,8 @@ import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
 import { updateTask, deleteTask } from '@/server/services/task.service';
 
+import { updateTaskSchema } from '@/features/tasks/schemas';
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -13,7 +15,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const data = await updateTask(params.id, session.user.id, body);
+    const parsed = updateTaskSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const data = await updateTask(params.id, session.user.id, parsed.data);
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(

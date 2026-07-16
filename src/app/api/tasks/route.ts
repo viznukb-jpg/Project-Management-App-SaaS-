@@ -26,6 +26,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { createTaskSchema } from '@/features/tasks/schemas';
+
+// (skip to POST method)
 export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -33,18 +36,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    if (!body.projectId || !body.title) {
+    const parsed = createTaskSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Project ID and title required' },
+        { error: parsed.error.flatten() },
         { status: 400 }
       );
     }
 
-    const data = await createTask(body.projectId, session.user.id, {
-      title: body.title,
-      description: body.description,
-      priority: body.priority,
-      assigneeId: body.assigneeId,
+    const data = await createTask(parsed.data.projectId, session.user.id, {
+      title: parsed.data.title,
+      description: parsed.data.description,
+      priority: parsed.data.priority,
+      assigneeId: parsed.data.assigneeId,
     });
     return NextResponse.json(data);
   } catch (error: unknown) {
