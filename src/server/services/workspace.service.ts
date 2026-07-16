@@ -1,6 +1,7 @@
 import { db } from '@/server/db';
 import { workspaces, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { createAuditLog } from './audit.service';
 
 export async function getUserWorkspaces(userId: string) {
   // Get workspaces where the user is a member
@@ -15,7 +16,7 @@ export async function getUserWorkspaces(userId: string) {
 }
 
 export async function createWorkspace(userId: string, name: string) {
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // 1. Create workspace
     const [workspace] = await tx
       .insert(workspaces)
@@ -34,6 +35,14 @@ export async function createWorkspace(userId: string, name: string) {
 
     return workspace;
   });
+
+  await createAuditLog({
+    workspaceId: result.id,
+    userId,
+    action: `Created workspace "${name}"`,
+  });
+
+  return result;
 }
 
 export async function updateWorkspace(
@@ -58,6 +67,12 @@ export async function updateWorkspace(
     .set({ name, updatedAt: new Date() })
     .where(eq(workspaces.id, workspaceId))
     .returning();
+
+  await createAuditLog({
+    workspaceId,
+    userId,
+    action: `Updated workspace name to "${name}"`,
+  });
 
   return updated;
 }

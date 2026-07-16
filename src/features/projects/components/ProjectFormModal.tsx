@@ -98,8 +98,8 @@ export function ProjectFormModal({
             <Label>Status</Label>
             <Select
               value={statusValue}
-              onValueChange={(val: 'ACTIVE' | 'ARCHIVED' | 'COMPLETED') =>
-                setValue('status', val)
+              onValueChange={(val) =>
+                setValue('status', val as 'ACTIVE' | 'ARCHIVED' | 'COMPLETED')
               }
             >
               <SelectTrigger>

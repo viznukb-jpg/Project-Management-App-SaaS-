@@ -30,3 +30,31 @@ export function useActiveWorkspaceRole() {
   const activeWorkspace = workspaces?.find((w) => w.id === activeWorkspaceId);
   return activeWorkspace?.role || 'VIEWER'; // Fallback to least privileged
 }
+
+export interface AuditLog {
+  id: string;
+  workspaceId: string;
+  userId: string | null;
+  action: string;
+  metadata: unknown;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  } | null;
+}
+
+export function useWorkspaceActivity(workspaceId: string) {
+  return useQuery<AuditLog[]>({
+    queryKey: ['activity', workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const res = await fetch(`/api/workspaces/${workspaceId}/activity`);
+      if (!res.ok) throw new Error('Failed to fetch activity');
+      return res.json();
+    },
+    enabled: !!workspaceId,
+  });
+}

@@ -1,6 +1,7 @@
 import { db } from '@/server/db';
 import { workspaceMembers, users } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { createAuditLog } from './audit.service';
 
 export async function getWorkspaceMembers(workspaceId: string) {
   const members = await db.query.workspaceMembers.findMany({
@@ -67,6 +68,13 @@ export async function inviteMember(
     })
     .returning();
 
+  await createAuditLog({
+    workspaceId,
+    userId: inviterId,
+    action: `Invited user ${user.name || user.email} to workspace as ${role}`,
+    metadata: { newMemberId: newMember.id, role },
+  });
+
   return newMember;
 }
 
@@ -99,6 +107,13 @@ export async function updateMemberRole(
     )
     .returning();
 
+  await createAuditLog({
+    workspaceId,
+    userId: updaterId,
+    action: `Updated a member's role to ${newRole}`,
+    metadata: { memberId, newRole },
+  });
+
   return updatedMember;
 }
 
@@ -126,4 +141,11 @@ export async function removeMember(
         eq(workspaceMembers.id, memberId)
       )
     );
+
+  await createAuditLog({
+    workspaceId,
+    userId: removerId,
+    action: `Removed a member from the workspace`,
+    metadata: { memberId },
+  });
 }

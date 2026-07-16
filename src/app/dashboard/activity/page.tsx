@@ -1,13 +1,20 @@
-import Link from 'next/link';
+import { ActivityList } from '@/features/workspaces/components/ActivityList';
 
 export default function ActivityPage() {
   return (
-    <div className="p-8">
-      <h1 className="font-bold text-2xl">Activity Feed</h1>
-      <p className="mt-2">Shows recent actions by users.</p>
-      <Link href="/" className="block mt-4 text-blue-500 underline">
-        Back to Home
-      </Link>
+    <div className="flex-1 overflow-y-auto p-8 bg-slate-50 min-h-full">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Activity Log
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Track everything that happens in your workspace.
+          </p>
+        </div>
+
+        <ActivityList />
+      </div>
     </div>
   );
 }

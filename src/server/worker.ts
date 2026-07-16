@@ -2,13 +2,13 @@ import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { db } from './db/index.js';
 import * as schema from './db/schema.js';
+import IORedis from 'ioredis';
 
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-};
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-console.log('Starting BullMQ worker on', connection.host);
+const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+
+console.log('Starting BullMQ worker on', redisUrl);
 
 export const worker = new Worker(
   'notificationQueue',

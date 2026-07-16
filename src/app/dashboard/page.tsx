@@ -60,7 +60,10 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: wsName }),
       });
-      if (!res.ok) throw new Error('Failed to create workspace');
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to create workspace');
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -82,7 +85,10 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName }),
       });
-      if (!res.ok) throw new Error('Failed to update workspace');
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update workspace');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -130,7 +136,7 @@ export default function DashboardPage() {
           Welcome to Your Dashboard!
         </h1>
         <p className="text-slate-500 mb-8">
-          You don't have any workspaces yet. Create one to get started.
+          You don&apos;t have any workspaces yet. Create one to get started.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
@@ -161,7 +167,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 lg:p-8 space-y-8">
+    <div className="max-w-6xl mx-auto p-6 lg:p-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">
           Dashboard / Workspace
@@ -171,80 +177,84 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {canManageWorkspace && (
-        <>
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-semibold mb-4">Create New Workspace</h2>
-            <div className="flex flex-col sm:flex-row gap-3 max-w-md">
-              <Input
-                value={newWorkspaceName}
-                onChange={(e) => setNewWorkspaceName(e.target.value)}
-                placeholder="E.g., Another Team"
-                className="flex-1"
-              />
-              <Button
-                onClick={() => createMutation.mutate(newWorkspaceName)}
-                disabled={!newWorkspaceName || createMutation.isPending}
-              >
-                {createMutation.isPending ? 'Creating...' : 'Create'}
-              </Button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-xl font-semibold mb-4">General Settings</h2>
-            <div className="space-y-4 max-w-md">
-              <div className="space-y-2">
-                <Label htmlFor="workspace-name">Workspace Name</Label>
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {canManageWorkspace && (
+          <div className="flex-1 w-full space-y-8">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                Create New Workspace
+              </h2>
+              <div className="flex flex-col sm:flex-row gap-3 max-w-md">
                 <Input
-                  id="workspace-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Acme Corp"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  placeholder="E.g., Another Team"
+                  className="flex-1"
                 />
-              </div>
-              <Button
-                onClick={() => updateMutation.mutate(name)}
-                disabled={
-                  updateMutation.isPending ||
-                  !name ||
-                  name === activeWorkspace?.name
-                }
-              >
-                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-
-            {isOwner && (
-              <div className="mt-8 pt-8 border-t border-slate-200">
-                <h3 className="text-lg font-semibold text-red-600 mb-2">
-                  Danger Zone
-                </h3>
-                <p className="text-sm text-slate-500 mb-4">
-                  Once you delete a workspace, there is no going back. Please be
-                  certain.
-                </p>
                 <Button
-                  variant="destructive"
-                  onClick={() => setIsDeleteWorkspaceModalOpen(true)}
-                  disabled={deleteMutation.isPending}
+                  onClick={() => createMutation.mutate(newWorkspaceName)}
+                  disabled={!newWorkspaceName || createMutation.isPending}
                 >
-                  {deleteMutation.isPending
-                    ? 'Deleting...'
-                    : 'Delete Workspace'}
+                  {createMutation.isPending ? 'Creating...' : 'Create'}
                 </Button>
               </div>
-            )}
-          </div>
-        </>
-      )}
+            </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h2 className="text-xl font-semibold mb-4">Members</h2>
-        <p className="text-sm text-slate-500 mb-6">
-          Manage who has access to this workspace.
-        </p>
-        <MemberManagement workspaceId={activeWorkspaceId} />
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-xl font-semibold mb-4">General Settings</h2>
+              <div className="space-y-4 max-w-md">
+                <div className="space-y-2">
+                  <Label htmlFor="workspace-name">Workspace Name</Label>
+                  <Input
+                    id="workspace-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Acme Corp"
+                  />
+                </div>
+                <Button
+                  onClick={() => updateMutation.mutate(name)}
+                  disabled={
+                    updateMutation.isPending ||
+                    !name ||
+                    name === activeWorkspace?.name
+                  }
+                >
+                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+
+              {isOwner && (
+                <div className="mt-8 pt-8 border-t border-slate-200">
+                  <h3 className="text-lg font-semibold text-red-600 mb-2">
+                    Danger Zone
+                  </h3>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Once you delete a workspace, there is no going back. Please
+                    be certain.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setIsDeleteWorkspaceModalOpen(true)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending
+                      ? 'Deleting...'
+                      : 'Delete Workspace'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 w-full bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 className="text-xl font-semibold mb-4">Members</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            Manage who has access to this workspace.
+          </p>
+          <MemberManagement workspaceId={activeWorkspaceId} />
+        </div>
       </div>
 
       <ConfirmModal
@@ -393,7 +403,7 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
       )}
 
       {/* Members List */}
-      <div className="border border-slate-200 rounded-lg overflow-hidden">
+      <div className="border border-slate-200 rounded-lg overflow-y-auto max-h-[420px]">
         {isLoading ? (
           <div className="p-4 text-center text-slate-500 animate-pulse">
             Loading members...
@@ -412,59 +422,65 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members?.map(
-                (member: {
-                  id: string;
-                  role: string;
-                  user: { name: string; email: string };
-                }) => (
-                  <TableRow key={member.id}>
-                    <TableCell>
-                      <div className="font-medium text-slate-900">
-                        {member.user.name}
-                      </div>
-                      <div className="text-slate-500">{member.user.email}</div>
-                    </TableCell>
-                    <TableCell>
-                      {roleContext === 'OWNER' && member.role !== 'OWNER' ? (
-                        <Select
-                          value={member.role}
-                          onValueChange={(val) =>
-                            updateRoleMutation.mutate({
-                              memberId: member.id,
-                              newRole: val,
-                            })
-                          }
-                          disabled={updateRoleMutation.isPending}
-                        >
-                          <SelectTrigger className="w-[120px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ADMIN">Admin</SelectItem>
-                            <SelectItem value="MEMBER">Member</SelectItem>
-                            <SelectItem value="VIEWER">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="secondary">{member.role}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {canManageMembers && member.role !== 'OWNER' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => setMemberToRemove(member.id)}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+              {[...(members || [])]
+                .sort((a: { role: string }, b: { role: string }) =>
+                  a.role === 'OWNER' ? -1 : b.role === 'OWNER' ? 1 : 0
                 )
-              )}
+                .map(
+                  (member: {
+                    id: string;
+                    role: string;
+                    user: { name: string; email: string };
+                  }) => (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="font-medium text-slate-900">
+                          {member.user.name}
+                        </div>
+                        <div className="text-slate-500">
+                          {member.user.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {roleContext === 'OWNER' && member.role !== 'OWNER' ? (
+                          <Select
+                            value={member.role}
+                            onValueChange={(val) =>
+                              updateRoleMutation.mutate({
+                                memberId: member.id,
+                                newRole: val,
+                              })
+                            }
+                            disabled={updateRoleMutation.isPending}
+                          >
+                            <SelectTrigger className="w-[120px] h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ADMIN">Admin</SelectItem>
+                              <SelectItem value="MEMBER">Member</SelectItem>
+                              <SelectItem value="VIEWER">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge variant="secondary">{member.role}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canManageMembers && member.role !== 'OWNER' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => setMemberToRemove(member.id)}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                )}
             </TableBody>
           </Table>
         )}

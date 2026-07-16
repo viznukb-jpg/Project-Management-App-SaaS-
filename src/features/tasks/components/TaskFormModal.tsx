@@ -110,10 +110,9 @@ export function TaskFormModal({
           <div className="space-y-2">
             <Label>Status</Label>
             <Select
-              // eslint-disable-next-line react-hooks/incompatible-library
               value={watch('status')}
-              onValueChange={(val: 'TODO' | 'IN_PROGRESS' | 'DONE') =>
-                setValue('status', val)
+              onValueChange={(val) =>
+                setValue('status', val as 'TODO' | 'IN_PROGRESS' | 'DONE')
               }
             >
               <SelectTrigger>
@@ -131,8 +130,11 @@ export function TaskFormModal({
             <Label>Priority</Label>
             <Select
               value={watch('priority')}
-              onValueChange={(val: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') =>
-                setValue('priority', val)
+              onValueChange={(val) =>
+                setValue(
+                  'priority',
+                  val as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+                )
               }
             >
               <SelectTrigger>

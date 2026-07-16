@@ -1,14 +1,10 @@
 import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
-const redisHost = process.env.REDIS_HOST;
-const redisPort = process.env.REDIS_PORT;
+const redisUrl = process.env.REDIS_URL;
 
-if (!redisHost) throw new Error('Cannot find REDIS_HOST from .env!');
-if (!redisPort) throw new Error('Cannot find REDIS_PORT from .env!');
+if (!redisUrl) throw new Error('Cannot find REDIS_URL from .env!');
 
-const connection = {
-  host: redisHost,
-  port: parseInt(redisPort),
-};
+const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 
 export const notificationQueue = new Queue('notificationQueue', { connection });

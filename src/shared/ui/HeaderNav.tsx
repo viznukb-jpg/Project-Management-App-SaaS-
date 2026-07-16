@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
 
 export function HeaderNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const role = useActiveWorkspaceRole();
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', className: '' },
@@ -21,9 +23,8 @@ export function HeaderNav({ isAdmin }: { isAdmin: boolean }) {
     },
   ];
 
-  if (isAdmin) {
-    // Insert Admin before Activity
-    navItems.splice(2, 0, {
+  if (isAdmin || role === 'ADMIN' || role === 'OWNER') {
+    navItems.push({
       name: 'Admin',
       href: '/dashboard/admin',
       className: 'hidden md:block',

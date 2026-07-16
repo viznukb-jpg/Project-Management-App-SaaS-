@@ -14,3 +14,21 @@ export async function createAuditLog(data: {
     metadata: data.metadata || null,
   });
 }
+
+export async function getAuditLogs(workspaceId: string, limit = 50) {
+  return await db.query.auditLogs.findMany({
+    where: (logs, { eq }) => eq(logs.workspaceId, workspaceId),
+    orderBy: (logs, { desc }) => [desc(logs.createdAt)],
+    limit,
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
