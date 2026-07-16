@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
-import { LogoutButton } from '@/features/auth/components/LogoutButton';
+import { UserAvatar } from '@/shared/ui/UserAvatar';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { HeaderNav } from './HeaderNav';
@@ -54,7 +54,7 @@ export async function Header() {
               <HeaderNav isAdmin={isAdmin} />
               <div className="pl-2 sm:pl-4 border-slate-200 border-l flex items-center gap-2">
                 <NotificationBell />
-                <LogoutButton />
+                <UserAvatar name={session.user.name || 'US'} />
               </div>
             </>
           )}
