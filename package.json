@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed": "npx tsx src/server/db/seed.ts"
+    "seed": "npx tsx src/server/db/seed.ts",
+    "worker": "npx tsx src/server/worker.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -26,9 +27,11 @@
     "@tanstack/react-query-devtools": "^5.101.2",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.6.23",
+    "bullmq": "^5.80.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.11.1",
     "js-cookie": "^3.0.8",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",

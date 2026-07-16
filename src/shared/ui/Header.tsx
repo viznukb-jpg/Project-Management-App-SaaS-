@@ -3,6 +3,7 @@ import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
 import { LogoutButton } from '@/features/auth/components/LogoutButton';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 
 export async function Header() {
   const session = await auth.api.getSession({
@@ -69,7 +70,8 @@ export async function Header() {
                   Activity
                 </Link>
               </div>
-              <div className="pl-2 sm:pl-4 border-slate-200 border-l">
+              <div className="pl-2 sm:pl-4 border-slate-200 border-l flex items-center gap-2">
+                <NotificationBell />
                 <LogoutButton />
               </div>
             </>
