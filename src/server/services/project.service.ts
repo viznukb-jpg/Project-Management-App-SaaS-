@@ -1,6 +1,7 @@
 import { db } from '@/server/db';
 import { projects, workspaceMembers } from '@/server/db/schema';
 import { eq, and, ilike, or } from 'drizzle-orm';
+import { createAuditLog } from './audit.service';
 
 export async function getProjects(
   workspaceId: string,
@@ -68,7 +69,6 @@ export async function createProject(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  // Only owners, admins, and members can create projects. Viewers cannot.
   if (!member || member.role === 'VIEWER') throw new Error('Unauthorized');
 
   const [project] = await db
@@ -79,6 +79,14 @@ export async function createProject(
       description,
     })
     .returning();
+
+  await createAuditLog({
+    workspaceId,
+    userId,
+    action: 'CREATE_PROJECT',
+    metadata: { projectId: project.id, name: project.name },
+  });
+
   return project;
 }
 
@@ -109,6 +117,14 @@ export async function updateProject(
     .set({ ...data, updatedAt: new Date() })
     .where(eq(projects.id, projectId))
     .returning();
+
+  await createAuditLog({
+    workspaceId: project.workspaceId,
+    userId,
+    action: 'UPDATE_PROJECT',
+    metadata: { projectId: project.id, changes: data },
+  });
+
   return updated;
 }
 
@@ -124,11 +140,18 @@ export async function deleteProject(projectId: string, userId: string) {
       eq(workspaceMembers.userId, userId)
     ),
   });
-  // Only owners and admins can delete projects
   if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
     throw new Error('Unauthorized to delete project');
   }
 
   await db.delete(projects).where(eq(projects.id, projectId));
+
+  await createAuditLog({
+    workspaceId: project.workspaceId,
+    userId,
+    action: 'DELETE_PROJECT',
+    metadata: { projectId },
+  });
+
   return true;
 }

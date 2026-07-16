@@ -1,6 +1,7 @@
 import { db } from '@/server/db';
 import { tasks, projects, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { createAuditLog } from './audit.service';
 
 async function checkProjectAccess(
   projectId: string,
@@ -45,7 +46,7 @@ export async function createTask(
     assigneeId?: string;
   }
 ) {
-  await checkProjectAccess(projectId, userId, true);
+  const project = await checkProjectAccess(projectId, userId, true);
 
   const existingTasks = await db.query.tasks.findMany({
     where: and(eq(tasks.projectId, projectId), eq(tasks.status, 'TODO')),
@@ -68,6 +69,13 @@ export async function createTask(
     })
     .returning();
 
+  await createAuditLog({
+    workspaceId: project.workspaceId,
+    userId,
+    action: 'CREATE_TASK',
+    metadata: { taskId: task.id, title: task.title },
+  });
+
   return task;
 }
 
@@ -88,13 +96,20 @@ export async function updateTask(
   });
   if (!task) throw new Error('Task not found');
 
-  await checkProjectAccess(task.projectId, userId, true);
+  const project = await checkProjectAccess(task.projectId, userId, true);
 
   const [updated] = await db
     .update(tasks)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(tasks.id, taskId))
     .returning();
+
+  await createAuditLog({
+    workspaceId: project.workspaceId,
+    userId,
+    action: 'UPDATE_TASK',
+    metadata: { taskId: task.id, changes: data },
+  });
 
   return updated;
 }
@@ -105,8 +120,16 @@ export async function deleteTask(taskId: string, userId: string) {
   });
   if (!task) throw new Error('Task not found');
 
-  await checkProjectAccess(task.projectId, userId, true);
+  const project = await checkProjectAccess(task.projectId, userId, true);
 
   await db.delete(tasks).where(eq(tasks.id, taskId));
+
+  await createAuditLog({
+    workspaceId: project.workspaceId,
+    userId,
+    action: 'DELETE_TASK',
+    metadata: { taskId },
+  });
+
   return true;
 }
