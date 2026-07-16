@@ -31,7 +31,7 @@ export default async function ProjectDetailPage({
         return await getTasks(id, session.user.id);
       },
     });
-  } catch (error) {
+  } catch (_error) {
     return notFound();
   }
 

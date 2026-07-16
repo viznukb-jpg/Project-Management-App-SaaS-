@@ -12,6 +12,7 @@ import {
   DragStartEvent,
   DragOverEvent,
   DragEndEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -21,6 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useState, useEffect } from 'react';
 import { TaskCard, SortableTaskCard } from './TaskCard';
+import { TaskDetailModal } from './TaskDetailModal';
 import { createClient } from '@supabase/supabase-js';
 
 const COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'] as const;
@@ -44,6 +46,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export function KanbanBoard({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ['tasks', projectId],
@@ -194,36 +197,47 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-6 h-full overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col}
-            status={col}
-            tasks={tasks.filter((t) => t.status === col)}
-          />
-        ))}
-      </div>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-6 h-full overflow-x-auto pb-4">
+          {COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col}
+              status={col}
+              tasks={tasks.filter((t) => t.status === col)}
+              onTaskClick={setSelectedTask}
+            />
+          ))}
+        </div>
 
-      <DragOverlay>
-        {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
-      </DragOverlay>
-    </DndContext>
+        <DragOverlay>
+          {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      <TaskDetailModal
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+      />
+    </>
   );
 }
 
 function KanbanColumn({
   status,
   tasks,
+  onTaskClick,
 }: {
   status: TaskStatus;
   tasks: Task[];
+  onTaskClick: (t: Task) => void;
 }) {
   const { setNodeRef } = useDroppable({
     id: status,
@@ -250,13 +264,14 @@ function KanbanColumn({
           strategy={verticalListSortingStrategy}
         >
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} />
+            <SortableTaskCard
+              key={task.id}
+              task={task}
+              onClick={() => onTaskClick(task)}
+            />
           ))}
         </SortableContext>
       </div>
     </div>
   );
 }
-
-// Ensure useDroppable is imported
-import { useDroppable } from '@dnd-kit/core';

@@ -24,16 +24,19 @@ const priorityColors = {
 export function TaskCard({
   task,
   isOverlay = false,
+  onClick,
 }: {
   task: Task;
   isOverlay?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
       className={`bg-white p-4 rounded-md shadow-sm border border-slate-200 group flex flex-col gap-2 relative ${
         isOverlay
           ? 'opacity-90 shadow-lg scale-105 rotate-2 cursor-grabbing'
-          : 'cursor-grab'
+          : 'cursor-pointer hover:border-blue-400'
       }`}
     >
       <div className="absolute left-2 top-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -63,7 +66,13 @@ export function TaskCard({
   );
 }
 
-export function SortableTaskCard({ task }: { task: Task }) {
+export function SortableTaskCard({
+  task,
+  onClick,
+}: {
+  task: Task;
+  onClick: () => void;
+}) {
   const {
     setNodeRef,
     attributes,
@@ -93,7 +102,7 @@ export function SortableTaskCard({ task }: { task: Task }) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} />
+      <TaskCard task={task} onClick={onClick} />
     </div>
   );
 }
