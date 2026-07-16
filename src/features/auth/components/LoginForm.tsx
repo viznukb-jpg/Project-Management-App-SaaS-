@@ -8,8 +8,8 @@ import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
 import { toast } from 'sonner';
+import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,20 +26,23 @@ export function LoginForm() {
   const onSubmit = async (data: LoginInput) => {
     setIsLoading(true);
 
-    const result = await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      redirect: false,
-    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+      });
 
-    setIsLoading(false);
+      setIsLoading(false);
 
-    if (result?.error) {
-      toast.error('Invalid email or password');
-    } else {
-      toast.success('Logged in successfully!');
-      router.push('/dashboard');
-      router.refresh();
+      if (error) {
+        toast.error(error.message || 'Invalid credentials');
+      } else {
+        toast.success('Logged in successfully!');
+        router.push('/dashboard');
+      }
+    } catch (err) {
+      setIsLoading(false);
+      toast.error('Something went wrong. Please try again.');
     }
   };
 

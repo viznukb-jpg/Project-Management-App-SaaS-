@@ -33,59 +33,56 @@ export const taskPriorityEnum = pgEnum('task_priority', [
   'URGENT',
 ]);
 
-// ---- USERS (Next-Auth / Better-Auth compatible) ----
+// ---- USERS (Better-Auth compatible) ----
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
-  name: text('name'),
-  email: text('email').unique(),
-  passwordHash: text('password_hash'),
-  emailVerified: timestamp('emailVerified', { mode: 'date' }),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('emailVerified').notNull(),
   image: text('image'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
 });
 
-export const accounts = pgTable(
-  'account',
-  {
-    userId: text('userId')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    type: text('type').notNull(),
-    provider: text('provider').notNull(),
-    providerAccountId: text('providerAccountId').notNull(),
-    refresh_token: text('refresh_token'),
-    access_token: text('access_token'),
-    expires_at: integer('expires_at'),
-    token_type: text('token_type'),
-    scope: text('scope'),
-    id_token: text('id_token'),
-    session_state: text('session_state'),
-  },
-  (account) => [
-    primaryKey({
-      columns: [account.provider, account.providerAccountId],
-    }),
-  ]
-);
-
 export const sessions = pgTable('session', {
-  sessionToken: text('sessionToken').primaryKey(),
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expiresAt').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+  ipAddress: text('ipAddress'),
+  userAgent: text('userAgent'),
   userId: text('userId')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  expires: timestamp('expires', { mode: 'date' }).notNull(),
 });
 
-export const verificationTokens = pgTable(
-  'verificationToken',
-  {
-    identifier: text('identifier').notNull(),
-    token: text('token').notNull(),
-    expires: timestamp('expires', { mode: 'date' }).notNull(),
-  },
-  (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })]
-);
+export const accounts = pgTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('accountId').notNull(),
+  providerId: text('providerId').notNull(),
+  userId: text('userId')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  accessToken: text('accessToken'),
+  refreshToken: text('refreshToken'),
+  idToken: text('idToken'),
+  accessTokenExpiresAt: timestamp('accessTokenExpiresAt'),
+  refreshTokenExpiresAt: timestamp('refreshTokenExpiresAt'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('createdAt').notNull(),
+  updatedAt: timestamp('updatedAt').notNull(),
+});
+
+export const verificationTokens = pgTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expiresAt').notNull(),
+  createdAt: timestamp('createdAt'),
+  updatedAt: timestamp('updatedAt'),
+});
 
 // ---- WORKSPACES ----
 export const workspaces = pgTable('workspaces', {

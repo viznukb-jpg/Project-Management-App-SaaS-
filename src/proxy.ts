@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const tokenNameVariants: string[] = [
-  'authjs.session-token',
-  '__Secure-authjs.session-token',
-  'next-auth.session-token',
-  '__Secure-next-auth.session-token',
+  'better-auth.session_token',
+  '__Secure-better-auth.session_token',
 ];
 
 function getTokenFromCookies(request: NextRequest) {

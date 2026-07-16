@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
 import { toast } from 'sonner';
+import { authClient } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 
 export function RegisterForm() {
@@ -26,22 +27,21 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+      const { error } = await authClient.signUp.email({
+        email: data.email,
+        password: data.password,
+        name: data.name,
       });
 
-      const result = await res.json();
       setIsLoading(false);
 
-      if (!res.ok) {
-        toast.error(result.error || 'Registration failed');
+      if (error) {
+        toast.error(error.message || 'Registration failed');
       } else {
         toast.success('Registration successful!');
-        router.push('/login');
+        router.push('/dashboard');
       }
-    } catch (error) {
+    } catch (err) {
       setIsLoading(false);
       toast.error('Something went wrong. Please try again.');
     }
