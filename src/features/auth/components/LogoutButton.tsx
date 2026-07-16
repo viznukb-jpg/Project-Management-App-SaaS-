@@ -13,9 +13,10 @@ export function LogoutButton() {
         await authClient.signOut();
         router.push('/login');
       }}
-      className="text-sm font-medium bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+      variant="ghost"
+      className="text-sm font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
     >
-      Logout
+      Sign out
     </Button>
   );
 }
