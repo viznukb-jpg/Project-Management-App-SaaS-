@@ -84,3 +84,124 @@ export function useCreateProject(workspaceId: string | null) {
     },
   });
 }
+
+export function useUpdateProject(workspaceId: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (updatedProject: Partial<Project> & { id: string }) => {
+      const { id, workspaceId: _, ...payload } = updatedProject;
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update project');
+      }
+      return res.json();
+    },
+    onMutate: async (updatedProject) => {
+      if (!workspaceId) return;
+      await queryClient.cancelQueries({ queryKey: ['projects', workspaceId] });
+      await queryClient.cancelQueries({
+        queryKey: ['project', updatedProject.id],
+      });
+
+      const previousProjects = queryClient.getQueryData<Project[]>([
+        'projects',
+        workspaceId,
+      ]);
+      const previousProject = queryClient.getQueryData<Project>([
+        'project',
+        updatedProject.id,
+      ]);
+
+      queryClient.setQueryData<Project[]>(['projects', workspaceId], (old) => {
+        if (!old) return [];
+        return old.map((p) =>
+          p.id === updatedProject.id ? { ...p, ...updatedProject } : p
+        );
+      });
+
+      queryClient.setQueryData<Project>(
+        ['project', updatedProject.id],
+        (old) => {
+          if (!old) return old;
+          return { ...old, ...updatedProject };
+        }
+      );
+
+      return { previousProjects, previousProject };
+    },
+    onError: (err, updatedProject, context) => {
+      if (workspaceId && context?.previousProjects) {
+        queryClient.setQueryData(
+          ['projects', workspaceId],
+          context.previousProjects
+        );
+      }
+      if (context?.previousProject) {
+        queryClient.setQueryData(
+          ['project', updatedProject.id],
+          context.previousProject
+        );
+      }
+    },
+    onSettled: (data, err, updatedProject) => {
+      if (workspaceId) {
+        queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
+      }
+      queryClient.invalidateQueries({
+        queryKey: ['project', updatedProject.id],
+      });
+    },
+  });
+}
+
+export function useDeleteProject(workspaceId: string | null) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to delete project');
+      }
+      return res.json();
+    },
+    onMutate: async (projectId) => {
+      if (!workspaceId) return;
+      await queryClient.cancelQueries({ queryKey: ['projects', workspaceId] });
+
+      const previousProjects = queryClient.getQueryData<Project[]>([
+        'projects',
+        workspaceId,
+      ]);
+
+      queryClient.setQueryData<Project[]>(['projects', workspaceId], (old) => {
+        if (!old) return [];
+        return old.filter((p) => p.id !== projectId);
+      });
+
+      return { previousProjects };
+    },
+    onError: (err, projectId, context) => {
+      if (workspaceId && context?.previousProjects) {
+        queryClient.setQueryData(
+          ['projects', workspaceId],
+          context.previousProjects
+        );
+      }
+    },
+    onSettled: () => {
+      if (workspaceId) {
+        queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
+      }
+    },
+  });
+}

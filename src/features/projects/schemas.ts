@@ -12,7 +12,7 @@ export const updateProjectSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(100).optional(),
     description: z.string().max(1000).optional().nullable(),
-    status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
+    status: z.enum(['ACTIVE', 'ARCHIVED', 'COMPLETED']).optional(),
   })
   .strict();
 

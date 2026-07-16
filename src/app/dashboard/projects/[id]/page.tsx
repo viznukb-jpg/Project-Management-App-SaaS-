@@ -9,6 +9,7 @@ import {
   dehydrate,
 } from '@tanstack/react-query';
 import { KanbanBoard } from '@/features/tasks/components/KanbanBoard';
+import { ProjectDetailHeader } from '@/features/projects/components/ProjectDetailHeader';
 
 export default async function ProjectDetailPage({
   params,
@@ -36,14 +37,11 @@ export default async function ProjectDetailPage({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <header className="flex-none p-6 pb-4 border-b border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
-        <p className="text-slate-500 mt-1">{project.description}</p>
-      </header>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <ProjectDetailHeader project={project} />
 
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <div className="flex-1 overflow-auto p-6 bg-slate-50/50">
+        <div className="flex-1 min-h-0 overflow-hidden p-6 bg-slate-50/50">
           <KanbanBoard projectId={id} />
         </div>
       </HydrationBoundary>

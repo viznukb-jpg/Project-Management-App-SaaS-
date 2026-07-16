@@ -209,7 +209,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   if (!isMounted) return null;
 
   return (
-    <div className="flex flex-col h-full gap-6 items-center w-full">
+    <div className="flex flex-col h-full gap-6 items-center w-full min-h-0">
       <div className="flex justify-center w-full pt-4">
         <Button
           onClick={() => setIsFormOpen(true)}
@@ -221,7 +221,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-hidden w-full max-w-7xl mx-auto flex justify-center">
+      <div className="flex-1 min-h-0 overflow-hidden w-full max-w-7xl mx-auto flex justify-center">
         <DndContext
           id="kanban-board-dnd"
           sensors={sensors}
@@ -309,7 +309,7 @@ function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className="flex flex-col bg-slate-100 rounded-lg p-4 min-w-[300px] w-[300px] border border-slate-200"
+      className="flex flex-col bg-slate-100 rounded-lg p-4 min-w-[300px] w-[300px] border border-slate-200 h-full min-h-0"
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-slate-700 text-sm">
