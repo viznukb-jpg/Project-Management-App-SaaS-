@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/Button';
 import { Edit2, Trash2 } from 'lucide-react';
@@ -20,8 +20,15 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
   const deleteMutation = useDeleteProject(project.workspaceId);
   const role = useActiveWorkspaceRole();
 
-  const canEdit = role !== 'VIEWER';
-  const canDelete = role === 'OWNER' || role === 'ADMIN';
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  const canEdit = isMounted && role !== 'VIEWER';
+  const canDelete = isMounted && (role === 'OWNER' || role === 'ADMIN');
 
   const handleUpdate = (data: UpdateProjectInput) => {
     updateMutation.mutate(
@@ -51,30 +58,48 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
     });
   };
 
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const isDescLong = project.description && project.description.length > 80;
+
   return (
     <>
-      <header className="flex-none p-6 pb-4 border-b border-slate-200 flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">
-              {project.name}
-            </h1>
-            <span
-              className={`text-xs px-2 py-1 rounded-full font-medium ${
-                project.status === 'ACTIVE'
-                  ? 'bg-blue-100 text-blue-700'
-                  : project.status === 'COMPLETED'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-slate-200 text-slate-700'
-              }`}
-            >
-              {project.status}
-            </span>
-          </div>
-          <p className="text-slate-500 mt-1">{project.description}</p>
+      <header className="flex-none p-6 pb-4 border-b border-slate-200 relative flex flex-col items-center justify-center text-center">
+        <div className="flex items-center justify-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
+          <span
+            className={`text-xs px-2 py-1 rounded-full font-medium ${
+              project.status === 'ACTIVE'
+                ? 'bg-blue-100 text-blue-700'
+                : project.status === 'COMPLETED'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-slate-200 text-slate-700'
+            }`}
+          >
+            {project.status}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="mt-2 flex flex-col items-center justify-center max-w-2xl px-4 w-full">
+          <p
+            className={`text-slate-500 w-full text-center ${
+              !isDescExpanded && isDescLong
+                ? 'truncate'
+                : 'break-words whitespace-pre-wrap'
+            }`}
+          >
+            {project.description}
+          </p>
+          {isDescLong && (
+            <button
+              onClick={() => setIsDescExpanded(!isDescExpanded)}
+              className="text-xs text-blue-600 hover:text-blue-800 mt-2 font-medium transition-colors"
+            >
+              {isDescExpanded ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+
+        <div className="absolute right-6 top-6 flex items-center gap-2">
           {canEdit && (
             <Button
               variant="outline"

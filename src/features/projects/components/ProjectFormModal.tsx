@@ -11,6 +11,7 @@ import {
 } from '@/shared/ui/Dialog';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
+import { Textarea } from '@/shared/ui/Textarea';
 import { Label } from '@/shared/ui/Label';
 import {
   Select,
@@ -85,9 +86,10 @@ export function ProjectFormModal({
 
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
-            <Input
+            <Textarea
               id="description"
               placeholder="Brief description..."
+              className="min-h-[120px] resize-y"
               {...register('description')}
             />
           </div>

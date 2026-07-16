@@ -25,7 +25,7 @@ export default async function ProjectsPage({
     if (session) {
       const search = resolvedSearchParams.search || '';
       const page = parseInt(resolvedSearchParams.page || '1', 10);
-      const limit = parseInt(resolvedSearchParams.limit || '10', 10);
+      const limit = parseInt(resolvedSearchParams.limit || '12', 10);
 
       await queryClient.prefetchQuery({
         queryKey: ['projects', activeWorkspaceId, search, page, limit],

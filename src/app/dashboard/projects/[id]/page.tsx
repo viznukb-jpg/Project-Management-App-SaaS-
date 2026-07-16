@@ -37,11 +37,11 @@ export default async function ProjectDetailPage({
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-y-auto">
       <ProjectDetailHeader project={project} />
 
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <div className="flex-1 min-h-0 overflow-hidden p-6 bg-slate-50/50">
+        <div className="flex-1 min-h-[600px] p-6 bg-slate-50/50 flex flex-col">
           <KanbanBoard projectId={id} />
         </div>
       </HydrationBoundary>

@@ -324,6 +324,39 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
     },
   });
 
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({
+      memberId,
+      newRole,
+    }: {
+      memberId: string;
+      newRole: string;
+    }) => {
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/members/${memberId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: newRole }),
+        }
+      );
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update role');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['workspace-members', workspaceId],
+      });
+      toast.success('Role updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return (
     <div className="space-y-8">
       {/* Invite Form */}
@@ -393,7 +426,29 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
                       <div className="text-slate-500">{member.user.email}</div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{member.role}</Badge>
+                      {roleContext === 'OWNER' && member.role !== 'OWNER' ? (
+                        <Select
+                          value={member.role}
+                          onValueChange={(val) =>
+                            updateRoleMutation.mutate({
+                              memberId: member.id,
+                              newRole: val,
+                            })
+                          }
+                          disabled={updateRoleMutation.isPending}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            <SelectItem value="MEMBER">Member</SelectItem>
+                            <SelectItem value="VIEWER">Viewer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="secondary">{member.role}</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       {canManageMembers && member.role !== 'OWNER' && (

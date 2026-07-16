@@ -1,6 +1,6 @@
 import { db } from '@/server/db';
 import { projects, workspaceMembers } from '@/server/db/schema';
-import { eq, and, ilike, or } from 'drizzle-orm';
+import { eq, and, ilike, or, sql } from 'drizzle-orm';
 import { createAuditLog } from './audit.service';
 
 export async function getProjects(
@@ -37,7 +37,12 @@ export async function getProjects(
     offset,
   });
 
-  return data;
+  const [countResult] = await db
+    .select({ count: sql`count(*)`.mapWith(Number) })
+    .from(projects)
+    .where(and(...conditions));
+
+  return { data, total: countResult.count };
 }
 
 export async function getProject(projectId: string, userId: string) {
