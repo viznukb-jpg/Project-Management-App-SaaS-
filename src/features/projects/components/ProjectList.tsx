@@ -27,6 +27,12 @@ export function ProjectList() {
   const limit = parseInt(searchParams.get('limit') || '10', 10);
 
   const [searchInput, setSearchInput] = useState(search);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
 
   // Sync state if URL changes
   useEffect(() => {
@@ -69,7 +75,7 @@ export function ProjectList() {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  if (!activeWorkspaceId) {
+  if (!isMounted || !activeWorkspaceId) {
     return (
       <div className="p-12 text-center border border-dashed rounded-lg bg-slate-50">
         <h2 className="text-xl font-semibold text-slate-900 mb-2">

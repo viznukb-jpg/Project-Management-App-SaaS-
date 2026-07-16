@@ -40,8 +40,9 @@ export function RegisterForm() {
       } else {
         toast.success('Registration successful!');
         router.push('/dashboard');
+        router.refresh();
       }
-    } catch (err) {
+    } catch {
       setIsLoading(false);
       toast.error('Something went wrong. Please try again.');
     }

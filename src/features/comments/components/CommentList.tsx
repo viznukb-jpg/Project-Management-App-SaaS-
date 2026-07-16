@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 type Comment = {
   id: string;
@@ -19,9 +20,13 @@ type Comment = {
 export function CommentList({
   taskId,
   currentUserId,
+  projectId,
+  isModal = false,
 }: {
   taskId: string;
   currentUserId?: string;
+  projectId?: string;
+  isModal?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
@@ -79,9 +84,7 @@ export function CommentList({
         {isLoading ? (
           <p className="text-sm text-slate-500">Loading comments...</p>
         ) : comments?.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No comments yet. Be the first to comment!
-          </p>
+          <p className="text-sm text-slate-500">No comments yet.</p>
         ) : (
           comments?.map((comment) => (
             <div
@@ -97,7 +100,9 @@ export function CommentList({
                     {new Date(comment.createdAt).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-slate-600 text-sm">{comment.content}</p>
+                <p className="text-slate-600 text-sm whitespace-pre-wrap break-words">
+                  {comment.content}
+                </p>
               </div>
 
               {currentUserId === comment.user.id && (
@@ -114,21 +119,36 @@ export function CommentList({
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
-        <Input
-          placeholder="Write a comment..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          disabled={addCommentMutation.isPending}
-          className="flex-1"
-        />
-        <Button
-          type="submit"
-          disabled={!content.trim() || addCommentMutation.isPending}
-        >
-          {addCommentMutation.isPending ? 'Sending...' : 'Send'}
-        </Button>
-      </form>
+      {isModal && projectId ? (
+        <div className="pt-2">
+          <Link
+            href={`/dashboard/projects/${projectId}/tasks/${taskId}/comments`}
+          >
+            <Button
+              variant="outline"
+              className="w-full text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              View full comments page
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
+          <Input
+            placeholder="Write a comment..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            disabled={addCommentMutation.isPending}
+            className="flex-1"
+          />
+          <Button
+            type="submit"
+            disabled={!content.trim() || addCommentMutation.isPending}
+          >
+            {addCommentMutation.isPending ? 'Sending...' : 'Send'}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

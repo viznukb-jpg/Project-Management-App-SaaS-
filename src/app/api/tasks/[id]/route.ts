@@ -7,7 +7,7 @@ import { updateTaskSchema } from '@/features/tasks/schemas';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -23,7 +23,11 @@ export async function PATCH(
       );
     }
 
-    const data = await updateTask(params.id, session.user.id, parsed.data);
+    const data = await updateTask(
+      (await params).id,
+      session.user.id,
+      parsed.data
+    );
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -35,14 +39,14 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    await deleteTask(params.id, session.user.id);
+    await deleteTask((await params).id, session.user.id);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return NextResponse.json(

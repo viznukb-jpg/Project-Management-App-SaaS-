@@ -60,7 +60,7 @@ export async function getProject(projectId: string, userId: string) {
 export async function createProject(
   workspaceId: string,
   name: string,
-  description: string | undefined,
+  description: string | undefined | null,
   userId: string
 ) {
   const member = await db.query.workspaceMembers.findFirst({
@@ -94,7 +94,7 @@ export async function updateProject(
   projectId: string,
   data: {
     name?: string;
-    description?: string;
+    description?: string | null;
     status?: 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
   },
   userId: string

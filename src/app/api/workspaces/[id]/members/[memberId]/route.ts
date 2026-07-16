@@ -8,7 +8,7 @@ import {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -21,8 +21,8 @@ export async function PATCH(
     }
 
     const updated = await updateMemberRole(
-      params.id,
-      params.memberId,
+      (await params).id,
+      (await params).memberId,
       body.role,
       session.user.id
     );
@@ -37,14 +37,18 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    await removeMember(params.id, params.memberId, session.user.id);
+    await removeMember(
+      (await params).id,
+      (await params).memberId,
+      session.user.id
+    );
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return NextResponse.json(

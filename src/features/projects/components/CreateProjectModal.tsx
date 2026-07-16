@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/shared/ui/Dialog';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
@@ -28,12 +27,12 @@ export function CreateProjectModal() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CreateProjectInput>({
-    resolver: zodResolver(createProjectSchema),
+  } = useForm<Omit<CreateProjectInput, 'workspaceId'>>({
+    resolver: zodResolver(createProjectSchema.omit({ workspaceId: true })),
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: CreateProjectInput) => {
+    mutationFn: async (data: Omit<CreateProjectInput, 'workspaceId'>) => {
       if (!activeWorkspaceId) throw new Error('No active workspace');
       const res = await fetch('/api/projects', {
         method: 'POST',

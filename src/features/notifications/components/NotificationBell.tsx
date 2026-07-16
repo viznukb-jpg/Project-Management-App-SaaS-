@@ -65,37 +65,39 @@ export function NotificationBell() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup className="max-h-96 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-slate-500">
-              No new notifications
-            </div>
-          ) : (
-            notifications.map((notif) => (
-              <DropdownMenuItem
-                key={notif.id}
-                className="flex flex-col items-start p-3 cursor-pointer hover:bg-slate-50 gap-1"
-                onClick={() => {
-                  markAsRead.mutate(notif.id);
-                }}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className="text-xs font-semibold text-blue-600 uppercase">
-                    {notif.type.replace('_', ' ')}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-sm text-slate-500">
+                No new notifications
+              </div>
+            ) : (
+              notifications.map((notif) => (
+                <DropdownMenuItem
+                  key={notif.id}
+                  className="flex flex-col items-start p-3 cursor-pointer hover:bg-slate-50 gap-1"
+                  onClick={() => {
+                    markAsRead.mutate(notif.id);
+                  }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xs font-semibold text-blue-600 uppercase">
+                      {notif.type.replace('_', ' ')}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {new Date(notif.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-700">{notif.message}</p>
+                  <span className="text-xs text-slate-400 mt-1">
+                    Click to mark as read
                   </span>
-                  <span className="text-[10px] text-slate-400">
-                    {new Date(notif.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-700">{notif.message}</p>
-                <span className="text-xs text-slate-400 mt-1">
-                  Click to mark as read
-                </span>
-              </DropdownMenuItem>
-            ))
-          )}
+                </DropdownMenuItem>
+              ))
+            )}
+          </div>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

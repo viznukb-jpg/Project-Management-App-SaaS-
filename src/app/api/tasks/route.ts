@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
       priority: parsed.data.priority,
       assigneeId: parsed.data.assigneeId,
+      status: parsed.data.status,
     });
     return NextResponse.json(data);
   } catch (error: unknown) {

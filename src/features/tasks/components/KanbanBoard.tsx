@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragOverlay,
@@ -23,20 +23,20 @@ import {
 import { useState, useEffect } from 'react';
 import { TaskCard, SortableTaskCard } from './TaskCard';
 import { TaskDetailModal } from './TaskDetailModal';
+import { TaskFormModal, TaskFormValues } from './TaskFormModal';
 import { createClient } from '@supabase/supabase-js';
+import { Button } from '@/shared/ui/Button';
+import { PlusIcon } from 'lucide-react';
+import {
+  useTasks,
+  useUpdateTask,
+  useCreateTask,
+  useDeleteTask,
+  Task,
+} from '../hooks';
 
-const COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'] as const;
+const COLUMNS = ['TODO', 'IN_PROGRESS', 'DONE'] as const;
 type TaskStatus = (typeof COLUMNS)[number];
-
-type Task = {
-  id: string;
-  projectId: string;
-  title: string;
-  description: string | null;
-  status: TaskStatus;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  position: number;
-};
 
 // Initialize Supabase Client for Real-time subscriptions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -47,15 +47,13 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-  const { data: tasks = [] } = useQuery<Task[]>({
-    queryKey: ['tasks', projectId],
-    queryFn: async () => {
-      const res = await fetch(`/api/tasks?projectId=${projectId}`);
-      if (!res.ok) throw new Error('Failed to fetch tasks');
-      return res.json();
-    },
-  });
+  const { data: tasks = [] } = useTasks(projectId);
+  const updateTaskMutation = useUpdateTask(projectId);
+  const createTaskMutation = useCreateTask(projectId);
+  const deleteTaskMutation = useDeleteTask(projectId);
 
   // Supabase Real-time Subscription
   useEffect(() => {
@@ -69,9 +67,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
           table: 'tasks',
           filter: `project_id=eq.${projectId}`,
         },
-        (_payload) => {
-          // Whenever a task changes in the DB, invalidate the react-query cache
-          // to refetch automatically on all connected clients
+        () => {
           queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
         }
       )
@@ -81,40 +77,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       supabase.removeChannel(channel);
     };
   }, [projectId, queryClient]);
-
-  const updateTaskMutation = useMutation({
-    mutationFn: async (updatedTask: Partial<Task> & { id: string }) => {
-      const res = await fetch(`/api/tasks/${updatedTask.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTask),
-      });
-      if (!res.ok) throw new Error('Failed to update task');
-      return res.json();
-    },
-    // Optimistic Update
-    onMutate: async (updatedTask) => {
-      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
-      const previousTasks = queryClient.getQueryData<Task[]>([
-        'tasks',
-        projectId,
-      ]);
-
-      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
-        if (!old) return [];
-        return old.map((t) =>
-          t.id === updatedTask.id ? { ...t, ...updatedTask } : t
-        );
-      });
-      return { previousTasks };
-    },
-    onError: (err, newTodo, context) => {
-      queryClient.setQueryData(['tasks', projectId], context?.previousTasks);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-    },
-  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -183,7 +145,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
     let newStatus = activeTask.status;
 
-    // Determine new status based on what it was dropped on
     if (over.data.current?.type === 'Column') {
       newStatus = overId as TaskStatus;
     } else if (over.data.current?.type === 'Task') {
@@ -196,37 +157,102 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     }
   };
 
-  return (
-    <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-6 h-full overflow-x-auto pb-4">
-          {COLUMNS.map((col) => (
-            <KanbanColumn
-              key={col}
-              status={col}
-              tasks={tasks.filter((t) => t.status === col)}
-              onTaskClick={setSelectedTask}
-            />
-          ))}
-        </div>
+  const handleCreateTask = (data: TaskFormValues) => {
+    createTaskMutation.mutate(data, {
+      onSuccess: () => {
+        setIsFormOpen(false);
+      },
+    });
+  };
 
-        <DragOverlay>
-          {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
+  const handleUpdateTask = (data: TaskFormValues) => {
+    if (!taskToEdit) return;
+    updateTaskMutation.mutate(
+      { id: taskToEdit.id, ...data },
+      {
+        onSuccess: () => {
+          setIsFormOpen(false);
+          setTaskToEdit(null);
+          setSelectedTask(null);
+        },
+      }
+    );
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    deleteTaskMutation.mutate(taskId, {
+      onSuccess: () => {
+        setSelectedTask(null);
+      },
+    });
+  };
+
+  const handleEditClick = (task: Task) => {
+    setTaskToEdit(task);
+    setIsFormOpen(true);
+  };
+
+  return (
+    <div className="flex flex-col h-full gap-6 items-center w-full">
+      <div className="flex justify-center w-full pt-4">
+        <Button
+          onClick={() => setIsFormOpen(true)}
+          size="lg"
+          className="w-[300px] text-base h-12 shadow-md hover:shadow-lg transition-shadow"
+        >
+          <PlusIcon className="size-5 mr-2" />
+          Create Task
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-hidden w-full max-w-7xl mx-auto flex justify-center">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-6 h-full overflow-x-auto pb-4 px-4 w-full justify-start md:justify-center">
+            {COLUMNS.map((col) => (
+              <KanbanColumn
+                key={col}
+                status={col}
+                tasks={tasks.filter((t) => t.status === col)}
+                onTaskClick={setSelectedTask}
+              />
+            ))}
+          </div>
+
+          <DragOverlay>
+            {activeTask ? (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              <TaskCard task={activeTask as any} isOverlay />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
 
       <TaskDetailModal
-        task={selectedTask}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        task={selectedTask as any}
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onEditClick={handleEditClick as any}
+        onDeleteClick={handleDeleteTask}
       />
-    </>
+
+      <TaskFormModal
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setTaskToEdit(null);
+        }}
+        onSubmit={taskToEdit ? handleUpdateTask : handleCreateTask}
+        initialData={taskToEdit}
+      />
+    </div>
   );
 }
 
@@ -266,7 +292,8 @@ function KanbanColumn({
           {tasks.map((task) => (
             <SortableTaskCard
               key={task.id}
-              task={task}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              task={task as any}
               onClick={() => onTaskClick(task)}
             />
           ))}

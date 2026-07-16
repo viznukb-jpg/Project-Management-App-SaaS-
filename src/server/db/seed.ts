@@ -109,10 +109,9 @@ async function seed() {
 
   // 5. Create 50 Tasks
   console.log('Creating tasks...');
-  const statuses: ('TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE')[] = [
+  const statuses: ('TODO' | 'IN_PROGRESS' | 'DONE')[] = [
     'TODO',
     'IN_PROGRESS',
-    'REVIEW',
     'DONE',
   ];
   const priorities: ('LOW' | 'MEDIUM' | 'HIGH' | 'URGENT')[] = [
@@ -129,7 +128,7 @@ async function seed() {
         projectId: projects[i % 10].id,
         title: `Task ${i + 1}`,
         description: `This is the description for task ${i + 1}`,
-        status: statuses[i % 4],
+        status: statuses[i % 3],
         priority: priorities[i % 4],
         assigneeId: users[i % 5].id,
         position: i * 1000,

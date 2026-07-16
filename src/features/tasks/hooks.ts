@@ -1,0 +1,146 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { TaskFormValues } from './components/TaskFormModal';
+
+export type Task = {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  position: number;
+};
+
+export function useTasks(projectId: string) {
+  return useQuery<Task[]>({
+    queryKey: ['tasks', projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/tasks?projectId=${projectId}`);
+      if (!res.ok) throw new Error('Failed to fetch tasks');
+      return res.json();
+    },
+  });
+}
+
+export function useCreateTask(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newTask: TaskFormValues) => {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newTask, projectId }),
+      });
+      if (!res.ok) throw new Error('Failed to create task');
+      return res.json();
+    },
+    onMutate: async (newTask) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
+      const previousTasks = queryClient.getQueryData<Task[]>([
+        'tasks',
+        projectId,
+      ]);
+
+      const optimisticTask: Task = {
+        id: `temp-${Date.now()}`,
+        projectId,
+        title: newTask.title,
+        description: newTask.description || null,
+        status: newTask.status || 'TODO',
+        priority: newTask.priority || 'MEDIUM',
+        position: 0, // Will be updated on actual fetch
+      };
+
+      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
+        return [...(old || []), optimisticTask];
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, newTask, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', projectId], context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+  });
+}
+
+export function useUpdateTask(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (updatedTask: Partial<Task> & { id: string }) => {
+      const res = await fetch(`/api/tasks/${updatedTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTask),
+      });
+      if (!res.ok) throw new Error('Failed to update task');
+      return res.json();
+    },
+    onMutate: async (updatedTask) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
+      const previousTasks = queryClient.getQueryData<Task[]>([
+        'tasks',
+        projectId,
+      ]);
+
+      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
+        if (!old) return [];
+        return old.map((t) =>
+          t.id === updatedTask.id ? { ...t, ...updatedTask } : t
+        );
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, updatedTask, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', projectId], context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+  });
+}
+
+export function useDeleteTask(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete task');
+      return res.json();
+    },
+    onMutate: async (taskId) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
+      const previousTasks = queryClient.getQueryData<Task[]>([
+        'tasks',
+        projectId,
+      ]);
+
+      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
+        if (!old) return [];
+        return old.filter((t) => t.id !== taskId);
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, taskId, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', projectId], context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+  });
+}

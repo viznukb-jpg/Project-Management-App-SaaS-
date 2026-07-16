@@ -8,14 +8,14 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const members = await getWorkspaceMembers(params.id);
+    const members = await getWorkspaceMembers((await params).id);
     return NextResponse.json(members);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -27,7 +27,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -40,7 +40,7 @@ export async function POST(
     }
 
     const member = await inviteMember(
-      params.id,
+      (await params).id,
       body.email,
       session.user.id,
       body.role

@@ -9,14 +9,14 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const data = await getProject(params.id, session.user.id);
+    const data = await getProject((await params).id, session.user.id);
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -30,7 +30,7 @@ import { updateProjectSchema } from '@/features/projects/schemas';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -46,7 +46,11 @@ export async function PATCH(
       );
     }
 
-    const data = await updateProject(params.id, parsed.data, session.user.id);
+    const data = await updateProject(
+      (await params).id,
+      parsed.data,
+      session.user.id
+    );
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -58,14 +62,14 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    await deleteProject(params.id, session.user.id);
+    await deleteProject((await params).id, session.user.id);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return NextResponse.json(

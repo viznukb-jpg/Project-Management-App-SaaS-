@@ -129,33 +129,6 @@ export function AttachmentList({
     <div className="space-y-4 mt-6">
       <div className="flex justify-between items-center pb-2 border-b">
         <h3 className="font-semibold text-slate-800 text-sm">Attachments</h3>
-        <div>
-          <input
-            type="file"
-            id="file-upload"
-            className="hidden"
-            onChange={handleFileUpload}
-            disabled={uploading}
-          />
-          <label htmlFor="file-upload">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs cursor-pointer"
-              render={<span />}
-              disabled={uploading}
-            >
-              <span className="flex items-center">
-                {uploading ? (
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                ) : (
-                  <Paperclip className="w-3 h-3 mr-1" />
-                )}
-                {uploading ? 'Uploading...' : 'Attach File'}
-              </span>
-            </Button>
-          </label>
-        </div>
       </div>
 
       <div className="space-y-2">
@@ -203,6 +176,34 @@ export function AttachmentList({
             </div>
           ))
         )}
+      </div>
+
+      <div className="pt-2">
+        <input
+          type="file"
+          id="file-upload"
+          className="hidden"
+          onChange={handleFileUpload}
+          disabled={uploading}
+        />
+        <label htmlFor="file-upload" className="w-full block">
+          <Button
+            variant="outline"
+            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
+            render={<span />}
+            nativeButton={false}
+            disabled={uploading}
+          >
+            <span className="flex items-center justify-center">
+              {uploading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Paperclip className="w-4 h-4 mr-2" />
+              )}
+              {uploading ? 'Uploading...' : 'Attach File'}
+            </span>
+          </Button>
+        </label>
       </div>
     </div>
   );

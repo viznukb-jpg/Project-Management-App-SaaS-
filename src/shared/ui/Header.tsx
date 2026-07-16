@@ -4,12 +4,14 @@ import { headers } from 'next/headers';
 import { LogoutButton } from '@/features/auth/components/LogoutButton';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { HeaderNav } from './HeaderNav';
 
 export async function Header() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   const isLoggedIn = !!session;
+  const isAdmin = session?.user?.email === 'admin@example.com';
 
   return (
     <header className="top-0 z-50 sticky bg-white/80 shadow-sm backdrop-blur-md border-gray-100 border-b w-full">
@@ -44,32 +46,7 @@ export async function Header() {
             </>
           ) : (
             <>
-              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                <Link
-                  href="/dashboard"
-                  className="hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard/projects"
-                  className="hidden sm:block hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
-                >
-                  Projects
-                </Link>
-                <Link
-                  href="/dashboard/admin"
-                  className="hidden md:block hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
-                >
-                  Admin
-                </Link>
-                <Link
-                  href="/dashboard/activity"
-                  className="hidden lg:block hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
-                >
-                  Activity
-                </Link>
-              </div>
+              <HeaderNav isAdmin={isAdmin} />
               <div className="pl-2 sm:pl-4 border-slate-200 border-l flex items-center gap-2">
                 <NotificationBell />
                 <LogoutButton />

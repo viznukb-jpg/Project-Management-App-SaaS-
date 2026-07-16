@@ -2,8 +2,9 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, MessageSquare } from 'lucide-react';
 import { Badge } from '@/shared/ui/Badge';
+import Link from 'next/link';
 
 type Task = {
   id: string;
@@ -61,6 +62,14 @@ export function TaskCard({
         >
           {task.priority}
         </Badge>
+        <Link
+          href={`/dashboard/projects/${task.projectId}/tasks/${task.id}/comments`}
+          onClick={(e) => e.stopPropagation()}
+          className="text-slate-400 hover:text-blue-500 transition-colors flex items-center gap-1 text-xs font-medium"
+          title="View comments"
+        >
+          <MessageSquare size={14} />
+        </Link>
       </div>
     </div>
   );

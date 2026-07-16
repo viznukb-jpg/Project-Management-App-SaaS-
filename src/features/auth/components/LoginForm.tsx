@@ -39,8 +39,9 @@ export function LoginForm() {
       } else {
         toast.success('Logged in successfully!');
         router.push('/dashboard');
+        router.refresh();
       }
-    } catch (err) {
+    } catch {
       setIsLoading(false);
       toast.error('Something went wrong. Please try again.');
     }

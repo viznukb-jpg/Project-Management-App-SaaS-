@@ -41,9 +41,10 @@ export async function createTask(
   userId: string,
   data: {
     title: string;
-    description?: string;
+    description?: string | null;
     priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-    assigneeId?: string;
+    assigneeId?: string | null;
+    status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
   }
 ) {
   const project = await checkProjectAccess(projectId, userId, true);
@@ -64,7 +65,7 @@ export async function createTask(
       description: data.description,
       priority: data.priority || 'MEDIUM',
       assigneeId: data.assigneeId,
-      status: 'TODO',
+      status: data.status || 'TODO',
       position: maxPosition + 1024,
     })
     .returning();
@@ -84,10 +85,10 @@ export async function updateTask(
   userId: string,
   data: {
     title?: string;
-    description?: string;
-    status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
+    description?: string | null;
+    status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
     priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-    assigneeId?: string;
+    assigneeId?: string | null;
     position?: number;
   }
 ) {

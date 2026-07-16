@@ -8,7 +8,7 @@ import {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -16,16 +16,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await req.json();
     if (!body.name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const updated = await updateWorkspace(
-      params.id,
-      body.name,
-      session.user.id
-    );
+    const updated = await updateWorkspace(id, body.name, session.user.id);
     return NextResponse.json(updated);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -37,7 +34,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -45,7 +42,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await deleteWorkspace(params.id, session.user.id);
+    const { id } = await params;
+    await deleteWorkspace(id, session.user.id);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return NextResponse.json(
