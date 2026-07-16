@@ -18,12 +18,28 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    if (!body.name) {
+    const name = body.name?.trim();
+    if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const updated = await updateWorkspace(id, body.name, session.user.id);
-    return NextResponse.json(updated);
+    try {
+      const updated = await updateWorkspace(id, name, session.user.id);
+      return NextResponse.json(updated);
+    } catch (dbError: unknown) {
+      if (
+        dbError &&
+        typeof dbError === 'object' &&
+        'code' in dbError &&
+        dbError.code === '23505'
+      ) {
+        return NextResponse.json(
+          { error: 'Workspace name already exists' },
+          { status: 409 }
+        );
+      }
+      throw dbError;
+    }
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },

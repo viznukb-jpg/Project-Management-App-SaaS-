@@ -6,7 +6,7 @@ import {
   createWorkspace,
 } from '@/server/services/workspace.service';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) {
@@ -31,12 +31,28 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    if (!body.name) {
+    const name = body.name?.trim();
+    if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const workspace = await createWorkspace(session.user.id, body.name);
-    return NextResponse.json(workspace);
+    try {
+      const workspace = await createWorkspace(session.user.id, name);
+      return NextResponse.json(workspace);
+    } catch (dbError: unknown) {
+      if (
+        dbError &&
+        typeof dbError === 'object' &&
+        'code' in dbError &&
+        dbError.code === '23505'
+      ) {
+        return NextResponse.json(
+          { error: 'Workspace name already exists' },
+          { status: 409 }
+        );
+      }
+      throw dbError;
+    }
   } catch (error: unknown) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createProjectSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+    name: z.string().trim().min(1, 'Name is required').max(100),
     description: z.string().max(1000).optional().nullable(),
     workspaceId: z.string().min(1, 'Workspace ID is required'),
   })
@@ -10,7 +10,7 @@ export const createProjectSchema = z
 
 export const updateProjectSchema = z
   .object({
-    name: z.string().min(2).max(100).optional(),
+    name: z.string().trim().min(1, 'Name is required').max(100).optional(),
     description: z.string().max(1000).optional().nullable(),
     status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),
   })

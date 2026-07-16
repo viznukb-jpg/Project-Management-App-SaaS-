@@ -74,10 +74,11 @@ export function useUpdateTask(projectId: string) {
 
   return useMutation({
     mutationFn: async (updatedTask: Partial<Task> & { id: string }) => {
-      const res = await fetch(`/api/tasks/${updatedTask.id}`, {
+      const { id, projectId: _projectId, ...payload } = updatedTask;
+      const res = await fetch(`/api/tasks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTask),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to update task');
       return res.json();

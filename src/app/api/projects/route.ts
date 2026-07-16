@@ -63,6 +63,17 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json(data);
   } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === '23505'
+    ) {
+      return NextResponse.json(
+        { error: 'Project name already exists in this workspace' },
+        { status: 409 }
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

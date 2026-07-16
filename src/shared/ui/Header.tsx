@@ -7,9 +7,14 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 import { HeaderNav } from './HeaderNav';
 
 export async function Header() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  let session = null;
+  try {
+    session = await auth.api.getSession({
+      headers: await headers(),
+    });
+  } catch (e) {
+    console.error('Session error:', e);
+  }
   const isLoggedIn = !!session;
   const isAdmin = session?.user?.email === 'admin@example.com';
 

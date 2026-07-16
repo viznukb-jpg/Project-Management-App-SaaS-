@@ -20,7 +20,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TaskCard, SortableTaskCard } from './TaskCard';
 import { TaskDetailModal } from './TaskDetailModal';
 import { TaskFormModal, TaskFormValues } from './TaskFormModal';
@@ -49,6 +49,13 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const originalStatusRef = useRef<TaskStatus | null>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
 
   const { data: tasks = [] } = useTasks(projectId);
   const updateTaskMutation = useUpdateTask(projectId);
@@ -86,7 +93,10 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const task = tasks.find((t) => t.id === active.id);
-    if (task) setActiveTask(task);
+    if (task) {
+      setActiveTask(task);
+      originalStatusRef.current = task.status;
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -113,7 +123,10 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
         if (old[activeIndex].status !== old[overIndex].status) {
           const newTasks = [...old];
-          newTasks[activeIndex].status = old[overIndex].status;
+          newTasks[activeIndex] = {
+            ...newTasks[activeIndex],
+            status: old[overIndex].status,
+          };
           return arrayMove(newTasks, activeIndex, overIndex);
         }
         return arrayMove(old, activeIndex, overIndex);
@@ -126,7 +139,10 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         if (!old) return [];
         const activeIndex = old.findIndex((t) => t.id === activeId);
         const newTasks = [...old];
-        newTasks[activeIndex].status = overId as TaskStatus;
+        newTasks[activeIndex] = {
+          ...newTasks[activeIndex],
+          status: overId as TaskStatus,
+        };
         return arrayMove(newTasks, activeIndex, activeIndex);
       });
     }
@@ -135,15 +151,15 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
     const { active, over } = event;
-    if (!over) return;
+    const originalStatus = originalStatusRef.current;
+    originalStatusRef.current = null;
+
+    if (!over || !originalStatus) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeTask = tasks.find((t) => t.id === activeId);
-    if (!activeTask) return;
-
-    let newStatus = activeTask.status;
+    let newStatus = originalStatus;
 
     if (over.data.current?.type === 'Column') {
       newStatus = overId as TaskStatus;
@@ -152,8 +168,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       if (overTask) newStatus = overTask.status;
     }
 
-    if (activeTask.status !== newStatus) {
-      updateTaskMutation.mutate({ id: activeTask.id, status: newStatus });
+    if (originalStatus !== newStatus) {
+      updateTaskMutation.mutate({ id: activeId, status: newStatus });
     }
   };
 
@@ -192,6 +208,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     setIsFormOpen(true);
   };
 
+  if (!isMounted) return null;
+
   return (
     <div className="flex flex-col h-full gap-6 items-center w-full">
       <div className="flex justify-center w-full pt-4">
@@ -207,6 +225,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
       <div className="flex-1 overflow-hidden w-full max-w-7xl mx-auto flex justify-center">
         <DndContext
+          id="kanban-board-dnd"
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
