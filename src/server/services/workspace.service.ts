@@ -11,7 +11,7 @@ export async function getUserWorkspaces(userId: string) {
     },
   });
 
-  return members.map((m) => m.workspace);
+  return members.map((m) => ({ ...m.workspace, role: m.role }));
 }
 
 export async function createWorkspace(userId: string, name: string) {

@@ -9,6 +9,7 @@ import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { Project, useUpdateProject, useDeleteProject } from '../hooks';
 import { UpdateProjectInput } from '../schemas';
 import { toast } from 'sonner';
+import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
 
 export function ProjectDetailHeader({ project }: { project: Project }) {
   const router = useRouter();
@@ -17,6 +18,10 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
 
   const updateMutation = useUpdateProject(project.workspaceId);
   const deleteMutation = useDeleteProject(project.workspaceId);
+  const role = useActiveWorkspaceRole();
+
+  const canEdit = role !== 'VIEWER';
+  const canDelete = role === 'OWNER' || role === 'ADMIN';
 
   const handleUpdate = (data: UpdateProjectInput) => {
     updateMutation.mutate(
@@ -70,24 +75,28 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditOpen(true)}
-            className="text-slate-600"
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDeleteOpen(true)}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-transparent hover:border-red-200"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </Button>
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditOpen(true)}
+              className="text-slate-600"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteOpen(true)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-transparent hover:border-red-200"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </Button>
+          )}
         </div>
       </header>
 

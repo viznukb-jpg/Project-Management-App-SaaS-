@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/shared/store/workspace';
+import { useWorkspaces } from '@/features/workspaces/hooks';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -19,14 +19,7 @@ import { useEffect } from 'react';
 export function WorkspaceSwitcher() {
   const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore();
 
-  const { data: workspaces, isLoading } = useQuery({
-    queryKey: ['workspaces'],
-    queryFn: async () => {
-      const res = await fetch('/api/workspaces');
-      if (!res.ok) throw new Error('Failed to fetch workspaces');
-      return res.json();
-    },
-  });
+  const { data: workspaces, isLoading } = useWorkspaces();
 
   useEffect(() => {
     if (workspaces && workspaces.length > 0 && !activeWorkspaceId) {

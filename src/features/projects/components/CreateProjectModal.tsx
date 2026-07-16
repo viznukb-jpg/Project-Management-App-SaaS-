@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createProjectSchema, CreateProjectInput } from '../schemas';
 import { useWorkspaceStore } from '@/shared/store/workspace';
+import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -20,6 +21,7 @@ import { toast } from 'sonner';
 export function CreateProjectModal() {
   const [open, setOpen] = useState(false);
   const { activeWorkspaceId } = useWorkspaceStore();
+  const role = useActiveWorkspaceRole();
   const queryClient = useQueryClient();
 
   const {
@@ -57,6 +59,8 @@ export function CreateProjectModal() {
       toast.error(error.message);
     },
   });
+
+  if (role === 'VIEWER') return null;
 
   return (
     <>

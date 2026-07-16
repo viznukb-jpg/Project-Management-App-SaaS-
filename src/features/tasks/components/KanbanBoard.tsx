@@ -35,6 +35,7 @@ import {
   useDeleteTask,
   Task,
 } from '../hooks';
+import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
 
 const COLUMNS = ['TODO', 'IN_PROGRESS', 'DONE'] as const;
 type TaskStatus = (typeof COLUMNS)[number];
@@ -63,6 +64,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const updateTaskMutation = useUpdateTask(projectId);
   const createTaskMutation = useCreateTask(projectId);
   const deleteTaskMutation = useDeleteTask(projectId);
+  const role = useActiveWorkspaceRole();
+  const canManageTasks = role !== 'VIEWER';
 
   // Supabase Real-time Subscription
   useEffect(() => {
@@ -91,6 +94,9 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // If user cannot manage tasks, don't pass sensors to DndContext
+  const activeSensors = canManageTasks ? sensors : [];
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -210,21 +216,23 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
 
   return (
     <div className="flex flex-col h-full gap-6 items-center w-full min-h-0">
-      <div className="flex justify-center w-full pt-4">
-        <Button
-          onClick={() => setIsFormOpen(true)}
-          size="lg"
-          className="w-[300px] text-base h-12 shadow-md hover:shadow-lg transition-shadow"
-        >
-          <PlusIcon className="size-5 mr-2" />
-          Create Task
-        </Button>
-      </div>
+      {canManageTasks && (
+        <div className="flex justify-center w-full pt-4">
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            size="lg"
+            className="w-[300px] text-base h-12 shadow-md hover:shadow-lg transition-shadow"
+          >
+            <PlusIcon className="size-5 mr-2" />
+            Create Task
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-hidden w-full max-w-7xl mx-auto flex justify-center">
         <DndContext
           id="kanban-board-dnd"
-          sensors={sensors}
+          sensors={activeSensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
@@ -256,8 +264,8 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onEditClick={handleEditClick as any}
-        onDeleteClick={handleDeleteTask}
+        onEditClick={canManageTasks ? (handleEditClick as any) : undefined}
+        onDeleteClick={canManageTasks ? handleDeleteTask : undefined}
       />
 
       <TaskFormModal

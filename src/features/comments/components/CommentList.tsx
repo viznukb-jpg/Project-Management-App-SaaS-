@@ -7,6 +7,7 @@ import { Input } from '@/shared/ui/Input';
 import { Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
+import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
 
 type Comment = {
   id: string;
@@ -32,6 +33,8 @@ export function CommentList({
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const role = useActiveWorkspaceRole();
+  const canComment = role !== 'VIEWER';
 
   const { data: comments, isLoading } = useQuery<Comment[]>({
     queryKey: ['comments', taskId],
@@ -108,7 +111,9 @@ export function CommentList({
                 </p>
               </div>
 
-              {currentUserId === comment.user.id && (
+              {(currentUserId === comment.user.id ||
+                role === 'OWNER' ||
+                role === 'ADMIN') && (
                 <button
                   onClick={() => setCommentToDelete(comment.id)}
                   className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -135,7 +140,7 @@ export function CommentList({
             </Button>
           </Link>
         </div>
-      ) : (
+      ) : canComment ? (
         <form onSubmit={handleSubmit} className="flex gap-2 pt-2">
           <Input
             placeholder="Write a comment..."
@@ -151,7 +156,7 @@ export function CommentList({
             {addCommentMutation.isPending ? 'Sending...' : 'Send'}
           </Button>
         </form>
-      )}
+      ) : null}
 
       <ConfirmModal
         isOpen={!!commentToDelete}

@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useWorkspaceStore } from '@/shared/store/workspace';
+import {
+  useWorkspaces,
+  useActiveWorkspaceRole,
+} from '@/features/workspaces/hooks';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
@@ -33,14 +37,10 @@ export default function DashboardPage() {
   const [isDeleteWorkspaceModalOpen, setIsDeleteWorkspaceModalOpen] =
     useState(false);
 
-  const { data: workspaces, isLoading } = useQuery({
-    queryKey: ['workspaces'],
-    queryFn: async () => {
-      const res = await fetch('/api/workspaces');
-      if (!res.ok) throw new Error('Failed to fetch workspaces');
-      return res.json();
-    },
-  });
+  const { data: workspaces, isLoading } = useWorkspaces();
+  const role = useActiveWorkspaceRole();
+  const canManageWorkspace = role === 'OWNER' || role === 'ADMIN';
+  const isOwner = role === 'OWNER';
 
   const activeWorkspace = workspaces?.find(
     (w: { id: string; name: string }) => w.id === activeWorkspaceId
@@ -171,65 +171,73 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h2 className="text-xl font-semibold mb-4">Create New Workspace</h2>
-        <div className="flex flex-col sm:flex-row gap-3 max-w-md">
-          <Input
-            value={newWorkspaceName}
-            onChange={(e) => setNewWorkspaceName(e.target.value)}
-            placeholder="E.g., Another Team"
-            className="flex-1"
-          />
-          <Button
-            onClick={() => createMutation.mutate(newWorkspaceName)}
-            disabled={!newWorkspaceName || createMutation.isPending}
-          >
-            {createMutation.isPending ? 'Creating...' : 'Create'}
-          </Button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <h2 className="text-xl font-semibold mb-4">General Settings</h2>
-        <div className="space-y-4 max-w-md">
-          <div className="space-y-2">
-            <Label htmlFor="workspace-name">Workspace Name</Label>
-            <Input
-              id="workspace-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Acme Corp"
-            />
+      {canManageWorkspace && (
+        <>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-xl font-semibold mb-4">Create New Workspace</h2>
+            <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+              <Input
+                value={newWorkspaceName}
+                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                placeholder="E.g., Another Team"
+                className="flex-1"
+              />
+              <Button
+                onClick={() => createMutation.mutate(newWorkspaceName)}
+                disabled={!newWorkspaceName || createMutation.isPending}
+              >
+                {createMutation.isPending ? 'Creating...' : 'Create'}
+              </Button>
+            </div>
           </div>
-          <Button
-            onClick={() => updateMutation.mutate(name)}
-            disabled={
-              updateMutation.isPending ||
-              !name ||
-              name === activeWorkspace?.name
-            }
-          >
-            {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
 
-        <div className="mt-8 pt-8 border-t border-slate-200">
-          <h3 className="text-lg font-semibold text-red-600 mb-2">
-            Danger Zone
-          </h3>
-          <p className="text-sm text-slate-500 mb-4">
-            Once you delete a workspace, there is no going back. Please be
-            certain.
-          </p>
-          <Button
-            variant="destructive"
-            onClick={() => setIsDeleteWorkspaceModalOpen(true)}
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete Workspace'}
-          </Button>
-        </div>
-      </div>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 className="text-xl font-semibold mb-4">General Settings</h2>
+            <div className="space-y-4 max-w-md">
+              <div className="space-y-2">
+                <Label htmlFor="workspace-name">Workspace Name</Label>
+                <Input
+                  id="workspace-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Acme Corp"
+                />
+              </div>
+              <Button
+                onClick={() => updateMutation.mutate(name)}
+                disabled={
+                  updateMutation.isPending ||
+                  !name ||
+                  name === activeWorkspace?.name
+                }
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+
+            {isOwner && (
+              <div className="mt-8 pt-8 border-t border-slate-200">
+                <h3 className="text-lg font-semibold text-red-600 mb-2">
+                  Danger Zone
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  Once you delete a workspace, there is no going back. Please be
+                  certain.
+                </p>
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsDeleteWorkspaceModalOpen(true)}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending
+                    ? 'Deleting...'
+                    : 'Delete Workspace'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 className="text-xl font-semibold mb-4">Members</h2>
@@ -254,6 +262,8 @@ export default function DashboardPage() {
 
 function MemberManagement({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
+  const roleContext = useActiveWorkspaceRole();
+  const canManageMembers = roleContext === 'OWNER' || roleContext === 'ADMIN';
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'MEMBER' | 'VIEWER'>('MEMBER');
   const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
@@ -317,33 +327,37 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="space-y-8">
       {/* Invite Form */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Input
-          placeholder="User email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1"
-        />
-        <Select
-          value={role}
-          onValueChange={(val) => setRole(val as 'ADMIN' | 'MEMBER' | 'VIEWER')}
-        >
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ADMIN">Admin</SelectItem>
-            <SelectItem value="MEMBER">Member</SelectItem>
-            <SelectItem value="VIEWER">Viewer</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          onClick={() => inviteMutation.mutate()}
-          disabled={!email || inviteMutation.isPending}
-        >
-          {inviteMutation.isPending ? 'Inviting...' : 'Invite'}
-        </Button>
-      </div>
+      {canManageMembers && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input
+            placeholder="User email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1"
+          />
+          <Select
+            value={role}
+            onValueChange={(val) =>
+              setRole(val as 'ADMIN' | 'MEMBER' | 'VIEWER')
+            }
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ADMIN">Admin</SelectItem>
+              <SelectItem value="MEMBER">Member</SelectItem>
+              <SelectItem value="VIEWER">Viewer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={() => inviteMutation.mutate()}
+            disabled={!email || inviteMutation.isPending}
+          >
+            {inviteMutation.isPending ? 'Inviting...' : 'Invite'}
+          </Button>
+        </div>
+      )}
 
       {/* Members List */}
       <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -382,7 +396,7 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
                       <Badge variant="secondary">{member.role}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {member.role !== 'OWNER' && (
+                      {canManageMembers && member.role !== 'OWNER' && (
                         <Button
                           variant="outline"
                           size="sm"

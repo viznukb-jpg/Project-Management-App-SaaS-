@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/Button';
 import { Paperclip, Trash2, Download, Loader2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
+import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -35,6 +36,8 @@ export function AttachmentList({
   const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(
     null
   );
+  const role = useActiveWorkspaceRole();
+  const canAttach = role !== 'VIEWER';
 
   const { data: attachments, isLoading } = useQuery<Attachment[]>({
     queryKey: ['attachments', taskId],
@@ -169,7 +172,9 @@ export function AttachmentList({
                 </div>
               </a>
 
-              {currentUserId === attachment.user.id && (
+              {(currentUserId === attachment.user.id ||
+                role === 'OWNER' ||
+                role === 'ADMIN') && (
                 <button
                   onClick={() => setAttachmentToDelete(attachment.id)}
                   className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 transition-opacity"
@@ -183,33 +188,35 @@ export function AttachmentList({
         )}
       </div>
 
-      <div className="pt-2">
-        <input
-          type="file"
-          id="file-upload"
-          className="hidden"
-          onChange={handleFileUpload}
-          disabled={uploading}
-        />
-        <label htmlFor="file-upload" className="w-full block">
-          <Button
-            variant="outline"
-            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
-            render={<span />}
-            nativeButton={false}
+      {canAttach && (
+        <div className="pt-2">
+          <input
+            type="file"
+            id="file-upload"
+            className="hidden"
+            onChange={handleFileUpload}
             disabled={uploading}
-          >
-            <span className="flex items-center justify-center">
-              {uploading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Paperclip className="w-4 h-4 mr-2" />
-              )}
-              {uploading ? 'Uploading...' : 'Attach File'}
-            </span>
-          </Button>
-        </label>
-      </div>
+          />
+          <label htmlFor="file-upload" className="w-full block">
+            <Button
+              variant="outline"
+              className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
+              render={<span />}
+              nativeButton={false}
+              disabled={uploading}
+            >
+              <span className="flex items-center justify-center">
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Paperclip className="w-4 h-4 mr-2" />
+                )}
+                {uploading ? 'Uploading...' : 'Attach File'}
+              </span>
+            </Button>
+          </label>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={!!attachmentToDelete}
