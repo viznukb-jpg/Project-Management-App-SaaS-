@@ -18,4 +18,16 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Auto-create a default workspace for the new user
+          const { createWorkspace } =
+            await import('@/server/services/workspace.service');
+          await createWorkspace(user.id, `${user.name}'s Workspace`);
+        },
+      },
+    },
+  },
 });
