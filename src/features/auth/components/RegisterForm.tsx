@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterInput } from '../schemas';
-import { registerUser } from '@/server/actions/auth';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
@@ -25,14 +24,26 @@ export function RegisterForm() {
 
   const onSubmit = async (data: RegisterInput) => {
     setIsLoading(true);
-    const result = await registerUser(data);
-    setIsLoading(false);
 
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success('Registration successful!');
-      router.push('/login');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+      setIsLoading(false);
+
+      if (!res.ok) {
+        toast.error(result.error || 'Registration failed');
+      } else {
+        toast.success('Registration successful!');
+        router.push('/login');
+      }
+    } catch (error) {
+      setIsLoading(false);
+      toast.error('Something went wrong. Please try again.');
     }
   };
 

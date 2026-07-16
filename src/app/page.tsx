@@ -38,19 +38,19 @@ export default function Home() {
           Projects List
         </Link>
         <Link
-          href="/projects/1"
+          href="/dashboard/projects/1"
           className="text-blue-500 underline hover:text-blue-700"
         >
           Project Kanban Board (Test ID: 1)
         </Link>
         <Link
-          href="/admin"
+          href="/dashboard/admin"
           className="text-blue-500 underline hover:text-blue-700"
         >
           Admin Panel
         </Link>
         <Link
-          href="/activity"
+          href="/dashboard/activity"
           className="text-blue-500 underline hover:text-blue-700"
         >
           Activity Feed (Bonus)
