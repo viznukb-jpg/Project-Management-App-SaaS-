@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
 import { LogoutButton } from '@/features/auth/components/LogoutButton';
+import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 
 export async function Header() {
   const session = await auth.api.getSession({
@@ -10,64 +11,65 @@ export async function Header() {
   const isLoggedIn = !!session;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[4rem] py-3 flex flex-wrap items-center justify-between gap-4">
-        {/* Logo on the left */}
-        <div className="flex items-center shrink-0">
+    <header className="top-0 z-50 sticky bg-white/80 shadow-sm backdrop-blur-md border-gray-100 border-b w-full">
+      <div className="flex flex-wrap justify-between items-center gap-4 mx-auto px-4 sm:px-6 py-3 max-w-7xl min-h-[4rem]">
+        {/* Logo & Switcher on the left */}
+        <div className="flex items-center gap-6 shrink-0">
           <Link
             href={isLoggedIn ? '/dashboard' : '/'}
-            className="text-2xl font-extrabold tracking-tighter bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+            className="bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-80 font-extrabold text-transparent text-2xl tracking-tighter transition-opacity"
           >
             SaaSPro
           </Link>
+          {isLoggedIn && <WorkspaceSwitcher />}
         </div>
 
         {/* Navigation Links on the right */}
-        <nav className="flex items-center flex-wrap gap-2 md:gap-4">
+        <nav className="flex flex-wrap items-center gap-2 md:gap-4">
           {!isLoggedIn ? (
             <>
               <Link
                 href="/login"
-                className="text-lg font-medium text-slate-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-blue-50/50"
+                className="hover:bg-blue-50/50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-lg transition-colors"
               >
                 Login
               </Link>
               <Link
                 href="/register"
-                className="text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all duration-300 px-5 py-2.5 rounded-full shadow-md hover:shadow-lg"
+                className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg px-5 py-2.5 rounded-full font-medium text-white text-lg transition-all duration-300"
               >
                 Get Started
               </Link>
             </>
           ) : (
             <>
-              <div className="flex items-center flex-wrap gap-1 sm:gap-2">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                 <Link
                   href="/dashboard"
-                  className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-slate-50"
+                  className="hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/dashboard/projects"
-                  className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-slate-50 hidden sm:block"
+                  className="hidden sm:block hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
                 >
                   Projects
                 </Link>
                 <Link
                   href="/dashboard/admin"
-                  className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-slate-50 hidden md:block"
+                  className="hidden md:block hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
                 >
                   Admin
                 </Link>
                 <Link
                   href="/dashboard/activity"
-                  className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-slate-50 hidden lg:block"
+                  className="hidden lg:block hover:bg-slate-50 px-3 py-2 rounded-md font-medium text-slate-600 hover:text-blue-600 text-sm transition-colors"
                 >
                   Activity
                 </Link>
               </div>
-              <div className="pl-2 sm:pl-4 border-l border-slate-200">
+              <div className="pl-2 sm:pl-4 border-slate-200 border-l">
                 <LogoutButton />
               </div>
             </>
