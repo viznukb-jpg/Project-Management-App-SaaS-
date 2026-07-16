@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 import { tasks } from '../task/schema';
 import { users } from '../user/schema';
 
+// ---- COMMENTS ----
 export const comments = pgTable('comments', {
   id: uuid('id').defaultRandom().primaryKey(),
   taskId: uuid('task_id')

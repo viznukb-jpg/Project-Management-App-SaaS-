@@ -3,7 +3,11 @@ import { relations } from 'drizzle-orm';
 import { workspaces } from '../workspace/schema';
 import { tasks } from '../task/schema';
 
-export const projectStatusEnum = pgEnum('project_status', ['ACTIVE', 'ARCHIVED', 'COMPLETED']);
+export const projectStatusEnum = pgEnum('project_status', [
+  'ACTIVE',
+  'ARCHIVED',
+  'COMPLETED',
+]);
 
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
