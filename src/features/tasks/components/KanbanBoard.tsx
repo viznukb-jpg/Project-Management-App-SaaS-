@@ -26,6 +26,7 @@ import { TaskDetailModal } from './TaskDetailModal';
 import { TaskFormModal, TaskFormValues } from './TaskFormModal';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '@/shared/ui/Button';
+import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { PlusIcon } from 'lucide-react';
 import {
   useTasks,
@@ -49,6 +50,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const originalStatusRef = useRef<TaskStatus | null>(null);
 
@@ -196,11 +198,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   };
 
   const handleDeleteTask = (taskId: string) => {
-    deleteTaskMutation.mutate(taskId, {
-      onSuccess: () => {
-        setSelectedTask(null);
-      },
-    });
+    setTaskToDelete(taskId);
   };
 
   const handleEditClick = (task: Task) => {
@@ -270,6 +268,25 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
         }}
         onSubmit={taskToEdit ? handleUpdateTask : handleCreateTask}
         initialData={taskToEdit}
+      />
+
+      <ConfirmModal
+        isOpen={!!taskToDelete}
+        onClose={() => setTaskToDelete(null)}
+        onConfirm={() => {
+          if (taskToDelete) {
+            deleteTaskMutation.mutate(taskToDelete, {
+              onSuccess: () => {
+                setSelectedTask(null);
+                setTaskToDelete(null);
+              },
+            });
+          }
+        }}
+        title="Delete Task"
+        description="Are you sure you want to delete this task? All comments and attachments will also be deleted."
+        confirmText="Delete"
+        isLoading={deleteTaskMutation.isPending}
       />
     </div>
   );

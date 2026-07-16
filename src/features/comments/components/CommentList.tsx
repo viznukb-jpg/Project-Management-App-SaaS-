@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 
 type Comment = {
   id: string;
@@ -30,6 +31,7 @@ export function CommentList({
 }) {
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
   const { data: comments, isLoading } = useQuery<Comment[]>({
     queryKey: ['comments', taskId],
@@ -65,6 +67,7 @@ export function CommentList({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
+      setCommentToDelete(null);
     },
   });
 
@@ -107,7 +110,7 @@ export function CommentList({
 
               {currentUserId === comment.user.id && (
                 <button
-                  onClick={() => deleteCommentMutation.mutate(comment.id)}
+                  onClick={() => setCommentToDelete(comment.id)}
                   className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   disabled={deleteCommentMutation.isPending}
                 >
@@ -149,6 +152,18 @@ export function CommentList({
           </Button>
         </form>
       )}
+
+      <ConfirmModal
+        isOpen={!!commentToDelete}
+        onClose={() => setCommentToDelete(null)}
+        onConfirm={() => {
+          if (commentToDelete) deleteCommentMutation.mutate(commentToDelete);
+        }}
+        title="Delete Comment"
+        description="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete"
+        isLoading={deleteCommentMutation.isPending}
+      />
     </div>
   );
 }

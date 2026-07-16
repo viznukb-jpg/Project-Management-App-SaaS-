@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
 import { Paperclip, Trash2, Download, Loader2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -31,6 +32,9 @@ export function AttachmentList({
 }) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(
+    null
+  );
 
   const { data: attachments, isLoading } = useQuery<Attachment[]>({
     queryKey: ['attachments', taskId],
@@ -69,6 +73,7 @@ export function AttachmentList({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attachments', taskId] });
+      setAttachmentToDelete(null);
     },
   });
 
@@ -166,7 +171,7 @@ export function AttachmentList({
 
               {currentUserId === attachment.user.id && (
                 <button
-                  onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                  onClick={() => setAttachmentToDelete(attachment.id)}
                   className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 transition-opacity"
                   disabled={deleteAttachmentMutation.isPending}
                 >
@@ -205,6 +210,19 @@ export function AttachmentList({
           </Button>
         </label>
       </div>
+
+      <ConfirmModal
+        isOpen={!!attachmentToDelete}
+        onClose={() => setAttachmentToDelete(null)}
+        onConfirm={() => {
+          if (attachmentToDelete)
+            deleteAttachmentMutation.mutate(attachmentToDelete);
+        }}
+        title="Delete Attachment"
+        description="Are you sure you want to delete this file? This action cannot be undone."
+        confirmText="Delete"
+        isLoading={deleteAttachmentMutation.isPending}
+      />
     </div>
   );
 }

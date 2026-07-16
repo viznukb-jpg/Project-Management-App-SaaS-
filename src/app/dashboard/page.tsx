@@ -23,12 +23,15 @@ import {
   TableRow,
 } from '@/shared/ui/Table';
 import { Badge } from '@/shared/ui/Badge';
+import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 
 export default function DashboardPage() {
   const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [isDeleteWorkspaceModalOpen, setIsDeleteWorkspaceModalOpen] =
+    useState(false);
 
   const { data: workspaces, isLoading } = useQuery({
     queryKey: ['workspaces'],
@@ -103,6 +106,7 @@ export default function DashboardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspaces'] });
       setActiveWorkspaceId(''); // Clear active workspace
+      setIsDeleteWorkspaceModalOpen(false);
       toast.success('Workspace deleted');
     },
     onError: (error: Error) => {
@@ -219,15 +223,7 @@ export default function DashboardPage() {
           </p>
           <Button
             variant="destructive"
-            onClick={() => {
-              if (
-                confirm(
-                  'Are you absolutely sure you want to delete this workspace? This action cannot be undone.'
-                )
-              ) {
-                deleteMutation.mutate();
-              }
-            }}
+            onClick={() => setIsDeleteWorkspaceModalOpen(true)}
             disabled={deleteMutation.isPending}
           >
             {deleteMutation.isPending ? 'Deleting...' : 'Delete Workspace'}
@@ -242,6 +238,16 @@ export default function DashboardPage() {
         </p>
         <MemberManagement workspaceId={activeWorkspaceId} />
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteWorkspaceModalOpen}
+        onClose={() => setIsDeleteWorkspaceModalOpen(false)}
+        onConfirm={() => deleteMutation.mutate()}
+        title="Delete Workspace"
+        description="Are you absolutely sure you want to delete this workspace? This action cannot be undone."
+        confirmText="Delete Workspace"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }
@@ -250,6 +256,7 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'ADMIN' | 'MEMBER' | 'VIEWER'>('MEMBER');
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
 
   const { data: members, isLoading } = useQuery({
     queryKey: ['workspace-members', workspaceId],
@@ -299,6 +306,7 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
       queryClient.invalidateQueries({
         queryKey: ['workspace-members', workspaceId],
       });
+      setMemberToRemove(null);
       toast.success('Member removed');
     },
     onError: (error: Error) => {
@@ -379,15 +387,7 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            if (
-                              confirm(
-                                'Are you sure you want to remove this member?'
-                              )
-                            ) {
-                              removeMutation.mutate(member.id);
-                            }
-                          }}
+                          onClick={() => setMemberToRemove(member.id)}
                         >
                           Remove
                         </Button>
@@ -400,6 +400,18 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
           </Table>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={() => {
+          if (memberToRemove) removeMutation.mutate(memberToRemove);
+        }}
+        title="Remove Member"
+        description="Are you sure you want to remove this member? They will lose access to this workspace."
+        confirmText="Remove"
+        isLoading={removeMutation.isPending}
+      />
     </div>
   );
 }
