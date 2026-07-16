@@ -16,7 +16,6 @@ const db = drizzle(client, { schema });
 async function seed() {
   console.log('Seeding database...');
 
-  // Clear existing data (optional, to allow multiple runs)
   console.log(
     'Clearing old data (so you do not need to drop the DB manually)...'
   );
@@ -123,7 +122,7 @@ async function seed() {
     'URGENT',
   ];
 
-  const tasks = await db
+  await db
     .insert(schema.tasks)
     .values(
       Array.from({ length: 50 }).map((_, i) => ({

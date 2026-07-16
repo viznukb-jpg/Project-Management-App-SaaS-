@@ -1,9 +1,14 @@
 import { db } from '@/server/db';
 import { projects, workspaceMembers } from '@/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike, or } from 'drizzle-orm';
 
-export async function getProjects(workspaceId: string, userId: string) {
-  // Ensure user is part of the workspace
+export async function getProjects(
+  workspaceId: string,
+  userId: string,
+  search?: string,
+  page = 1,
+  limit = 10
+) {
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
       eq(workspaceMembers.workspaceId, workspaceId),
@@ -12,10 +17,26 @@ export async function getProjects(workspaceId: string, userId: string) {
   });
   if (!member) throw new Error('Unauthorized');
 
-  return await db.query.projects.findMany({
-    where: eq(projects.workspaceId, workspaceId),
+  const offset = (page - 1) * limit;
+
+  const conditions = [eq(projects.workspaceId, workspaceId)];
+  if (search) {
+    conditions.push(
+      or(
+        ilike(projects.name, `%${search}%`),
+        ilike(projects.description, `%${search}%`)
+      )!
+    );
+  }
+
+  const data = await db.query.projects.findMany({
+    where: and(...conditions),
     orderBy: (projects, { desc }) => [desc(projects.createdAt)],
+    limit,
+    offset,
   });
+
+  return data;
 }
 
 export async function getProject(projectId: string, userId: string) {

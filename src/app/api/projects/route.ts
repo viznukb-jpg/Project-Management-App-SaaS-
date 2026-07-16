@@ -17,7 +17,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = await getProjects(workspaceId, session.user.id);
+    const search = req.nextUrl.searchParams.get('search') || undefined;
+    const page = parseInt(req.nextUrl.searchParams.get('page') || '1', 10);
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10);
+
+    const data = await getProjects(
+      workspaceId,
+      session.user.id,
+      search,
+      page,
+      limit
+    );
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(
