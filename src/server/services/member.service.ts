@@ -197,6 +197,25 @@ export async function removeMember(
     throw new UnauthorizedError();
   }
 
+  const targetMember = await db.query.workspaceMembers.findFirst({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.id, memberId)
+    ),
+  });
+
+  if (!targetMember) {
+    throw new NotFoundError('Member not found');
+  }
+
+  if (targetMember.role === 'OWNER') {
+    throw new UnauthorizedError('Cannot remove the workspace owner');
+  }
+
+  if (targetMember.role === 'ADMIN' && remover.role !== 'OWNER') {
+    throw new UnauthorizedError('Only the workspace owner can remove admins');
+  }
+
   await db
     .delete(workspaceMembers)
     .where(
