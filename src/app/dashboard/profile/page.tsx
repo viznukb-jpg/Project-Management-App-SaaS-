@@ -1,5 +1,3 @@
-'use client';
-
 import { ProfileForm } from '@/features/profile';
 
 export default function ProfilePage() {

@@ -1,4 +1,8 @@
-import { ActivityList } from '@/features/workspaces';
+import dynamic from 'next/dynamic';
+
+const ActivityList = dynamic(() =>
+  import('@/features/workspaces').then((mod) => mod.ActivityList)
+);
 
 export default function ActivityPage() {
   return (

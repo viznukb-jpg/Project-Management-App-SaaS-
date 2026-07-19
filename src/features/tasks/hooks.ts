@@ -1,5 +1,4 @@
 import {
-  useQuery,
   useMutation,
   useQueryClient,
   useInfiniteQuery,
@@ -70,7 +69,7 @@ export function useCreateTask(projectId: string) {
       queryClient.setQueriesData<{
         pages: { data: Task[]; nextCursor: string | null }[];
       }>({ queryKey: taskKeys.all(projectId) }, (old) => {
-        if (!old) return old;
+        if (!old || !old.pages) return old;
         return {
           ...old,
           pages: old.pages.map((p, index) => {
@@ -100,7 +99,8 @@ export function useUpdateTask(projectId: string) {
 
   return useMutation({
     mutationFn: async (updatedTask: Partial<Task> & { id: string }) => {
-      const { id, projectId: _projectId, ...payload } = updatedTask;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, projectId: _pid, ...payload } = updatedTask;
       const res = await fetch(`/api/tasks/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,7 @@ export function useUpdateTask(projectId: string) {
       queryClient.setQueriesData<{
         pages: { data: Task[]; nextCursor: string | null }[];
       }>({ queryKey: taskKeys.all(projectId) }, (old) => {
-        if (!old) return old;
+        if (!old || !old.pages) return old;
         return {
           ...old,
           pages: old.pages.map((p) => ({
@@ -167,7 +167,7 @@ export function useDeleteTask(projectId: string) {
       queryClient.setQueriesData<{
         pages: { data: Task[]; nextCursor: string | null }[];
       }>({ queryKey: taskKeys.all(projectId) }, (old) => {
-        if (!old) return old;
+        if (!old || !old.pages) return old;
         return {
           ...old,
           pages: old.pages.map((p) => ({

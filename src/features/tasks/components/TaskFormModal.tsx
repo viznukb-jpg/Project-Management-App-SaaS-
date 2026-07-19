@@ -168,7 +168,13 @@ export function TaskFormModal({
                       return 'Unassigned';
 
                     const selected = members?.find(
-                      (m) => m.user.id === assigneeId
+                      (m: {
+                        user: {
+                          id: string;
+                          name: string | null;
+                          email: string;
+                        };
+                      }) => m.user.id === assigneeId
                     )?.user;
                     if (!selected) return assigneeId; // fallback while loading
                     return selected.name

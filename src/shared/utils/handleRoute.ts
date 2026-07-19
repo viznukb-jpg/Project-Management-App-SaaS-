@@ -5,7 +5,7 @@ import { z } from 'zod';
 export function handleRouteError(error: unknown) {
   if (error instanceof z.ZodError) {
     return NextResponse.json(
-      { error: error.errors[0].message },
+      { error: error.issues[0].message },
       { status: 400 }
     );
   }

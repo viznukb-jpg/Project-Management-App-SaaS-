@@ -1,6 +1,5 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
 import {
   DndContext,
   DragOverlay,
@@ -9,22 +8,12 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragStartEvent,
-  DragOverEvent,
-  DragEndEvent,
-  useDroppable,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useState, useEffect, useRef } from 'react';
-import { TaskCard, SortableTaskCard } from './TaskCard';
+import { SortableTaskCard } from './TaskCard';
 import { TaskDetailModal } from './TaskDetailModal';
 import { TaskFormModal, TaskFormValues } from './TaskFormModal';
-import { supabase } from '@/shared/utils/supabase/client';
 import { Button } from '@/shared/ui/Button';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { Input } from '@/shared/ui/Input';
@@ -37,7 +26,6 @@ import {
   useDeleteTask,
   Task,
 } from '../hooks';
-import { taskKeys } from '../queryKeys';
 import { useActiveWorkspaceRole } from '@/features/workspaces';
 import { useTaskRealtime } from '../hooks/useTaskRealtime';
 import { useKanbanDnd } from '../hooks/useKanbanDnd';
@@ -47,7 +35,6 @@ const COLUMNS = ['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'] as const;
 type TaskStatus = (typeof COLUMNS)[number];
 
 export function KanbanBoard({ projectId }: { projectId: string }) {
-  const queryClient = useQueryClient();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -97,9 +84,6 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // If user cannot manage tasks, don't pass sensors to DndContext
-  const activeSensors = canManageTasks ? sensors : [];
-
   const { handleDragStart, handleDragOver, handleDragEnd, handleDragCancel } =
     useKanbanDnd({
       projectId,
@@ -136,6 +120,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
   };
 
   const handleEditClick = (task: Task) => {
+    setSelectedTask(null); // Close TaskDetailModal to prevent Radix UI pointer-events conflicts
     setTaskToEdit(task);
     setIsFormOpen(true);
   };
@@ -200,7 +185,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden w-full max-w-7xl mx-auto pb-4">
         <DndContext
           id="kanban-board-dnd"
-          sensors={activeSensors}
+          sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
@@ -213,6 +198,7 @@ export function KanbanBoard({ projectId }: { projectId: string }) {
                 key={col}
                 status={col}
                 tasks={tasks.filter((t) => t.status === col)}
+                canManageTasks={canManageTasks}
                 onTaskClick={(t) => {
                   setActiveTask(t);
                   setSelectedTask(t);

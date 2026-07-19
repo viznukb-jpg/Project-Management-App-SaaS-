@@ -5,7 +5,7 @@ import {
 } from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { workspaceMembers, users } from '@/server/db/schema';
-import { eq, and, sql, lt, inArray } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { createAuditLog } from './audit.service';
 import { enqueueNotification } from './notification.service';
 
@@ -119,13 +119,15 @@ export async function inviteMember(
   });
 
   await Promise.all(
-    admins.map((a) =>
-      enqueueNotification(
-        a.userId,
-        'MEMBER_JOINED',
-        `${user.name || user.email} joined the workspace`
+    admins
+      .filter((a) => a.userId !== inviterId)
+      .map((a) =>
+        enqueueNotification(
+          a.userId,
+          'MEMBER_JOINED',
+          `${user.name || user.email} joined the workspace`
+        )
       )
-    )
   );
 
   return newMember;

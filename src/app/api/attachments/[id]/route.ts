@@ -6,7 +6,7 @@ import {
   deleteAttachment,
   getAttachment,
 } from '@/server/services/attachment.service';
-import { getServerSupabase } from '@/lib/supabase';
+import { getServerSupabase } from '@/shared/utils/supabase/server';
 
 export const GET = withRouteHandler(
   async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {

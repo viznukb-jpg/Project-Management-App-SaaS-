@@ -52,7 +52,7 @@ export function useKanbanDnd({
       queryClient.setQueriesData<{
         pages: { data: Task[]; nextCursor: string | null }[];
       }>({ queryKey: taskKeys.all(projectId) }, (old) => {
-        if (!old) return old;
+        if (!old || !old.pages) return old;
         const allTasks = old.pages.flatMap((p) => p.data);
         const activeIndex = allTasks.findIndex((t) => t.id === activeId);
         const overIndex = allTasks.findIndex((t) => t.id === overId);
@@ -84,7 +84,7 @@ export function useKanbanDnd({
       queryClient.setQueriesData<{
         pages: { data: Task[]; nextCursor: string | null }[];
       }>({ queryKey: taskKeys.all(projectId) }, (old) => {
-        if (!old) return old;
+        if (!old || !old.pages) return old;
         const allTasks = old.pages.flatMap((p) => p.data);
         const activeIndex = allTasks.findIndex((t) => t.id === activeId);
         if (activeIndex === -1) return old;

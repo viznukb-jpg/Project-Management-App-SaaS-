@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/shared/utils/auth-client';
 import { LogOut, User } from 'lucide-react';
 
 interface UserAvatarProps {

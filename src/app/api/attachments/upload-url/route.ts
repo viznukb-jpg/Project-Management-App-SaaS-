@@ -2,7 +2,7 @@ import { withRouteHandler } from '@/shared/utils/handleRoute';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
-import { getServerSupabase } from '@/lib/supabase';
+import { getServerSupabase } from '@/shared/utils/supabase/server';
 import { checkTaskAccess } from '@/server/services/attachment.service';
 import { v4 as uuidv4 } from 'uuid';
 

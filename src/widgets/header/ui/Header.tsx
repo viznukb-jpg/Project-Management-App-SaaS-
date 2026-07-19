@@ -52,9 +52,9 @@ export async function Header() {
           ) : (
             <>
               <HeaderNav isAdmin={isAdmin} />
-              <div className="pl-2 sm:pl-4 border-slate-200 border-l flex items-center gap-2">
+              <div className="flex items-center gap-2 pl-2 sm:pl-4 border-slate-200 border-l">
                 <NotificationBell />
-                <UserAvatar name={session.user.name || 'US'} />
+                <UserAvatar name={session?.user?.name || 'US'} />
               </div>
             </>
           )}

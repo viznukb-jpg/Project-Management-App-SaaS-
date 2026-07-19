@@ -42,8 +42,18 @@ export function NotificationBell() {
       const res = await fetch(`/api/notifications/${id}`, { method: 'PATCH' });
       if (!res.ok) throw new Error('Failed to mark as read');
     },
-    onSuccess: () => {
+    onSuccess: (_data, _id, context) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
+      // Invalidate related data so the UI reflects the change immediately
+      const type = (context as { type: string } | undefined)?.type;
+      if (type === 'TASK_ASSIGNED') {
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      } else if (type === 'MEMBER_INVITED') {
+        queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      } else if (type === 'MEMBER_JOINED') {
+        queryClient.invalidateQueries({ queryKey: ['members'] });
+      }
     },
   });
 
@@ -79,7 +89,9 @@ export function NotificationBell() {
                   key={notif.id}
                   className="flex flex-col items-start p-3 cursor-pointer hover:bg-slate-50 gap-1"
                   onClick={() => {
-                    markAsRead.mutate(notif.id);
+                    markAsRead.mutate(notif.id, {
+                      context: { type: notif.type },
+                    });
                   }}
                 >
                   <div className="flex items-center justify-between w-full">

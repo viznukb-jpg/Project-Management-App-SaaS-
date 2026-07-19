@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/shared/utils/auth-client';
 import { Button } from '@/shared/ui/Button';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

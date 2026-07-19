@@ -6,7 +6,7 @@ import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/shared/utils/auth-client';
 import { useUpdateProfile, useDeleteAccount } from '../hooks';
 import { updateNameSchema } from '../schemas';
 import { toast } from 'sonner';
@@ -26,7 +26,7 @@ export const ProfileForm = () => {
     const result = updateNameSchema.safeParse({ name: name.trim() });
 
     if (!result.success) {
-      toast.error(result.error.errors[0].message);
+      toast.error(result.error.issues[0].message);
       return;
     }
 

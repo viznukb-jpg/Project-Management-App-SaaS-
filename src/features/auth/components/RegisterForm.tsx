@@ -8,7 +8,7 @@ import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
 import { toast } from 'sonner';
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/shared/utils/auth-client';
 import { useRouter } from 'next/navigation';
 
 export function RegisterForm() {

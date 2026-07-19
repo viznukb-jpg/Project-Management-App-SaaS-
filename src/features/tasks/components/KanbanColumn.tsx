@@ -12,10 +12,12 @@ export function KanbanColumn({
   status,
   tasks,
   onTaskClick,
+  canManageTasks,
 }: {
   status: TaskStatus;
   tasks: Task[];
   onTaskClick: (t: Task) => void;
+  canManageTasks?: boolean;
 }) {
   const { setNodeRef } = useDroppable({
     id: status,
@@ -47,6 +49,7 @@ export function KanbanColumn({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               task={task as any}
               onClick={() => onTaskClick(task)}
+              disabled={!canManageTasks}
             />
           ))}
         </SortableContext>

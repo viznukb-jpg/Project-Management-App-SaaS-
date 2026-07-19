@@ -93,3 +93,39 @@ export async function deleteWorkspace(workspaceId: string, userId: string) {
   await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
   return true;
 }
+
+export async function leaveWorkspace(workspaceId: string, userId: string) {
+  const member = await db.query.workspaceMembers.findFirst({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.userId, userId)
+    ),
+  });
+
+  if (!member) {
+    throw new NotFoundError('You are not a member of this workspace');
+  }
+
+  if (member.role === 'OWNER') {
+    throw new UnauthorizedError(
+      'Owner cannot leave the workspace. Delete it instead or transfer ownership.'
+    );
+  }
+
+  await db
+    .delete(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, workspaceId),
+        eq(workspaceMembers.userId, userId)
+      )
+    );
+
+  await createAuditLog({
+    workspaceId,
+    userId,
+    action: `Left the workspace`,
+  });
+
+  return true;
+}

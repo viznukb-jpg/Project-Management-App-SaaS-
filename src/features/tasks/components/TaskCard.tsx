@@ -78,9 +78,11 @@ export function TaskCard({
 export function SortableTaskCard({
   task,
   onClick,
+  disabled,
 }: {
   task: Task;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   const {
     setNodeRef,
@@ -92,6 +94,7 @@ export function SortableTaskCard({
   } = useSortable({
     id: task.id,
     data: { type: 'Task', task },
+    disabled,
   });
 
   const style = {

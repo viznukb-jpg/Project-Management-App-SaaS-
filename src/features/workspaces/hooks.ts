@@ -139,3 +139,30 @@ export function useDeleteWorkspace() {
     },
   });
 }
+
+export function useLeaveWorkspace() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!activeWorkspaceId) return;
+      const res = await fetch(`/api/workspaces/${activeWorkspaceId}/leave`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to leave workspace');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      setActiveWorkspaceId(''); // Clear active workspace
+      toast.success('You have left the workspace');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
