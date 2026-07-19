@@ -15,7 +15,10 @@ export async function GET(
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const members = await getWorkspaceMembers((await params).id);
+    const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '20', 10);
+
+    const members = await getWorkspaceMembers((await params).id, cursor, limit);
     return NextResponse.json(members);
   } catch (error: unknown) {
     return NextResponse.json(

@@ -71,6 +71,7 @@ export function ProjectFormModal({
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
           <div className="space-y-2">
             <Label htmlFor="name">Project Name</Label>
@@ -80,7 +81,7 @@ export function ProjectFormModal({
               {...register('name')}
             />
             {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
+              <p className="text-red-500 text-sm">{errors.name.message}</p>
             )}
           </div>
 
@@ -105,6 +106,7 @@ export function ProjectFormModal({
               <SelectTrigger>
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
+
               <SelectContent>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>

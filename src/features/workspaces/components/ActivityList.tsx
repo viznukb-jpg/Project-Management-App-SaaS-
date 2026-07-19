@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useWorkspaceStore } from '@/shared/store/workspace';
 import { useWorkspaceActivity } from '../hooks';
 import { formatDistanceToNow } from 'date-fns';
@@ -8,9 +9,18 @@ import { Clock } from 'lucide-react';
 
 export function ActivityList() {
   const { activeWorkspaceId } = useWorkspaceStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
   const { data: logs, isLoading } = useWorkspaceActivity(
     activeWorkspaceId as string
   );
+
+  if (!isMounted) return null;
 
   if (isLoading) {
     return (

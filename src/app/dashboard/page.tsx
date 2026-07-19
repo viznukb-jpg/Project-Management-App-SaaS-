@@ -6,7 +6,11 @@ import {
   useWorkspaces,
   useActiveWorkspaceRole,
 } from '@/features/workspaces/hooks';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Label } from '@/shared/ui/Label';
@@ -278,14 +282,32 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
   const [role, setRole] = useState<'ADMIN' | 'MEMBER' | 'VIEWER'>('MEMBER');
   const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
 
-  const { data: members, isLoading } = useQuery({
+  const {
+    data: membersRes,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['workspace-members', workspaceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/members`);
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: '10' });
+      if (pageParam) params.set('cursor', pageParam as string);
+
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/members?${params.toString()}`
+      );
       if (!res.ok) throw new Error('Failed to fetch members');
-      return res.json();
+      return res.json() as Promise<{
+        data: unknown[];
+        nextCursor: string | null;
+      }>;
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+    initialPageParam: undefined as string | undefined,
   });
+
+  const members = membersRes?.pages.flatMap((p) => p.data) || [];
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
@@ -430,7 +452,7 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
                   (member: {
                     id: string;
                     role: string;
-                    user: { name: string; email: string };
+                    user: { name: string | null; email: string };
                   }) => (
                     <TableRow key={member.id}>
                       <TableCell>
@@ -485,6 +507,18 @@ function MemberManagement({ workspaceId }: { workspaceId: string }) {
           </Table>
         )}
       </div>
+
+      {hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="outline"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? 'Loading...' : 'Load More Members'}
+          </Button>
+        </div>
+      )}
 
       <ConfirmModal
         isOpen={!!memberToRemove}

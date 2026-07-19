@@ -1,13 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/shared/store/workspace';
 import Link from 'next/link';
 import { Badge } from '@/shared/ui/Badge';
 import { Input } from '@/shared/ui/Input';
 import { Button } from '@/shared/ui/Button';
-import { Pagination } from '@/shared/ui/Pagination';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useProjects } from '@/features/projects/hooks';
 import { useState, useEffect } from 'react';
 
 type Project = {
@@ -24,8 +23,6 @@ export function ProjectList() {
   const pathname = usePathname();
 
   const search = searchParams.get('search') || '';
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '12', 10);
 
   const [searchInput, setSearchInput] = useState(search);
   const [isMounted, setIsMounted] = useState(false);
@@ -42,25 +39,15 @@ export function ProjectList() {
   }, [search]);
 
   const {
-    data: projects,
+    data,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ['projects', activeWorkspaceId, search, page, limit],
-    queryFn: async () => {
-      if (!activeWorkspaceId) return { data: [], total: 0 };
-      const res = await fetch(
-        `/api/projects?workspaceId=${activeWorkspaceId}&search=${search}&page=${page}&limit=${limit}`
-      );
-      if (!res.ok) throw new Error('Failed to fetch projects');
-      return res.json() as Promise<{ data: Project[]; total: number }>;
-    },
-    enabled: !!activeWorkspaceId,
-  });
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useProjects(activeWorkspaceId, search);
 
-  const projectsData = projects?.data || [];
-  const totalProjects = projects?.total || 0;
-  const totalPages = Math.ceil(totalProjects / limit);
+  const projects = data?.pages.flatMap((p) => p.data) || [];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,13 +57,7 @@ export function ProjectList() {
     } else {
       params.delete('search');
     }
-    params.set('page', '1'); // reset to page 1 on new search
-    router.push(`${pathname}?${params.toString()}`);
-  };
-
-  const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('page', newPage.toString());
+    params.delete('cursor'); // Reset pagination on search
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -137,14 +118,14 @@ export function ProjectList() {
         <div className="p-8 text-center text-red-500">
           Error loading projects.
         </div>
-      ) : projectsData.length === 0 ? (
+      ) : projects.length === 0 ? (
         <div className="p-12 text-center text-slate-500 border border-dashed rounded-lg bg-slate-50/50">
           No projects found.
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 min-h-[460px] content-start">
-            {projectsData.map((project) => (
+            {projects.map((project) => (
               <Link
                 key={project.id}
                 href={`/dashboard/projects/${project.id}`}
@@ -170,14 +151,17 @@ export function ProjectList() {
             ))}
           </div>
 
-          {/* Pagination Controls */}
-          <div className="pt-3 !mt-2 border-t border-slate-200">
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
+          {hasNextPage && (
+            <div className="pt-6 flex justify-center border-t border-slate-200">
+              <Button
+                variant="outline"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load More Projects'}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>

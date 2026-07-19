@@ -194,22 +194,23 @@ export function AttachmentList({
             type="file"
             id="file-upload"
             className="hidden"
+            accept=".pdf,.doc,.docx,.txt"
             onChange={handleFileUpload}
             disabled={uploading}
           />
-          <label htmlFor="file-upload" className="w-full block">
+          <label htmlFor="file-upload" className="block w-full">
             <Button
               variant="outline"
-              className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
+              className="hover:bg-blue-50 border-blue-200 w-full text-blue-600 cursor-pointer"
               render={<span />}
               nativeButton={false}
               disabled={uploading}
             >
-              <span className="flex items-center justify-center">
+              <span className="flex justify-center items-center">
                 {uploading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                 ) : (
-                  <Paperclip className="w-4 h-4 mr-2" />
+                  <Paperclip className="mr-2 w-4 h-4" />
                 )}
                 {uploading ? 'Uploading...' : 'Attach File'}
               </span>

@@ -1,7 +1,8 @@
 import { db } from '@/server/db';
 import { tasks, projects, workspaceMembers } from '@/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, ilike, gt } from 'drizzle-orm';
 import { createAuditLog } from './audit.service';
+import { enqueueNotification } from './notification.service';
 
 async function checkProjectAccess(
   projectId: string,
@@ -27,13 +28,45 @@ async function checkProjectAccess(
   return project;
 }
 
-export async function getTasks(projectId: string, userId: string) {
+export async function getTasks(
+  projectId: string,
+  userId: string,
+  search = '',
+  cursor?: string | null,
+  limit = 20
+) {
   await checkProjectAccess(projectId, userId);
 
-  return await db.query.tasks.findMany({
-    where: eq(tasks.projectId, projectId),
+  const conditions = [eq(tasks.projectId, projectId)];
+
+  if (search) {
+    conditions.push(
+      or(
+        ilike(tasks.title, `%${search}%`),
+        ilike(tasks.description, `%${search}%`)
+      )!
+    );
+  }
+
+  if (cursor) {
+    conditions.push(gt(tasks.position, Number(cursor)));
+  }
+
+  const data = await db.query.tasks.findMany({
+    where: and(...conditions),
     orderBy: (tasks, { asc }) => [asc(tasks.position)],
+    limit: limit + 1,
   });
+
+  let nextCursor: string | null = null;
+  if (data.length > limit) {
+    const nextItem = data.pop();
+    if (nextItem) {
+      nextCursor = nextItem.position.toString();
+    }
+  }
+
+  return { data, nextCursor };
 }
 
 export async function createTask(
@@ -44,7 +77,7 @@ export async function createTask(
     description?: string | null;
     priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     assigneeId?: string | null;
-    status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+    status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
   }
 ) {
   const project = await checkProjectAccess(projectId, userId, true);
@@ -77,6 +110,14 @@ export async function createTask(
     metadata: { taskId: task.id, title: task.title },
   });
 
+  if (data.assigneeId && data.assigneeId !== userId) {
+    await enqueueNotification(
+      data.assigneeId,
+      'TASK_ASSIGNED',
+      `You have been assigned a new task: ${task.title}`
+    );
+  }
+
   return task;
 }
 
@@ -86,7 +127,7 @@ export async function updateTask(
   data: {
     title?: string;
     description?: string | null;
-    status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
+    status?: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
     priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
     assigneeId?: string | null;
     position?: number;
@@ -111,6 +152,18 @@ export async function updateTask(
     action: 'UPDATE_TASK',
     metadata: { taskId: task.id, changes: data },
   });
+
+  if (
+    data.assigneeId &&
+    data.assigneeId !== task.assigneeId &&
+    data.assigneeId !== userId
+  ) {
+    await enqueueNotification(
+      data.assigneeId,
+      'TASK_ASSIGNED',
+      `You have been assigned to task: ${updated.title}`
+    );
+  }
 
   return updated;
 }

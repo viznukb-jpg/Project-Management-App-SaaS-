@@ -14,6 +14,7 @@ import { comments } from '../comment/schema';
 export const taskStatusEnum = pgEnum('task_status', [
   'TODO',
   'IN_PROGRESS',
+  'REVIEW',
   'DONE',
 ]);
 export const taskPriorityEnum = pgEnum('task_priority', [

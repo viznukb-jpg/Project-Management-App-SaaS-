@@ -1,11 +1,21 @@
 import { db } from '@/server/db';
 import { workspaceMembers, users } from '@/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql, lt } from 'drizzle-orm';
 import { createAuditLog } from './audit.service';
 
-export async function getWorkspaceMembers(workspaceId: string) {
-  const members = await db.query.workspaceMembers.findMany({
-    where: eq(workspaceMembers.workspaceId, workspaceId),
+export async function getWorkspaceMembers(
+  workspaceId: string,
+  cursor?: string | null,
+  limit = 20
+) {
+  const conditions = [eq(workspaceMembers.workspaceId, workspaceId)];
+
+  if (cursor) {
+    conditions.push(lt(workspaceMembers.createdAt, new Date(cursor)));
+  }
+
+  const data = await db.query.workspaceMembers.findMany({
+    where: and(...conditions),
     with: {
       user: {
         columns: {
@@ -15,8 +25,24 @@ export async function getWorkspaceMembers(workspaceId: string) {
         },
       },
     },
+    orderBy: (workspaceMembers, { desc }) => [desc(workspaceMembers.createdAt)],
+    limit: limit + 1,
   });
-  return members;
+
+  let nextCursor: string | null = null;
+  if (data.length > limit) {
+    const nextItem = data.pop();
+    if (nextItem) {
+      nextCursor = nextItem.createdAt.toISOString();
+    }
+  }
+
+  const [countResult] = await db
+    .select({ count: sql`count(*)`.mapWith(Number) })
+    .from(workspaceMembers)
+    .where(eq(workspaceMembers.workspaceId, workspaceId));
+
+  return { data, total: countResult.count, nextCursor };
 }
 
 export async function inviteMember(

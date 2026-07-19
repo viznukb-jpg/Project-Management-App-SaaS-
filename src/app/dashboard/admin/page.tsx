@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useWorkspaceStore } from '@/shared/store/workspace';
 import { useQuery } from '@tanstack/react-query';
 import { Users, FolderKanban, ListTodo, LayoutDashboard } from 'lucide-react';
@@ -14,6 +15,12 @@ interface WorkspaceStats {
 
 export default function AdminDashboardPage() {
   const { activeWorkspaceId } = useWorkspaceStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
 
   const {
     data: stats,
@@ -35,6 +42,8 @@ export default function AdminDashboardPage() {
     },
     enabled: !!activeWorkspaceId,
   });
+
+  if (!isMounted) return null;
 
   if (!activeWorkspaceId) {
     return (

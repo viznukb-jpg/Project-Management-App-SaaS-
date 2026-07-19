@@ -1,13 +1,13 @@
 import { db } from '@/server/db';
 import { projects, workspaceMembers } from '@/server/db/schema';
-import { eq, and, ilike, or, sql } from 'drizzle-orm';
+import { eq, and, ilike, or, sql, lt } from 'drizzle-orm';
 import { createAuditLog } from './audit.service';
 
 export async function getProjects(
   workspaceId: string,
   userId: string,
   search?: string,
-  page = 1,
+  cursor?: string | null,
   limit = 10
 ) {
   const member = await db.query.workspaceMembers.findFirst({
@@ -17,8 +17,6 @@ export async function getProjects(
     ),
   });
   if (!member) throw new Error('Unauthorized');
-
-  const offset = (page - 1) * limit;
 
   const conditions = [eq(projects.workspaceId, workspaceId)];
   if (search) {
@@ -30,19 +28,40 @@ export async function getProjects(
     );
   }
 
+  if (cursor) {
+    conditions.push(lt(projects.createdAt, new Date(cursor)));
+  }
+
   const data = await db.query.projects.findMany({
     where: and(...conditions),
     orderBy: (projects, { desc }) => [desc(projects.createdAt)],
-    limit,
-    offset,
+    limit: limit + 1, // Fetch one extra to determine if there's a next page
   });
+
+  let nextCursor: string | null = null;
+  if (data.length > limit) {
+    const nextItem = data.pop(); // Remove the extra item
+    if (nextItem) {
+      nextCursor = nextItem.createdAt.toISOString();
+    }
+  }
+
+  const countConditions = [eq(projects.workspaceId, workspaceId)];
+  if (search) {
+    countConditions.push(
+      or(
+        ilike(projects.name, `%${search}%`),
+        ilike(projects.description, `%${search}%`)
+      )!
+    );
+  }
 
   const [countResult] = await db
     .select({ count: sql`count(*)`.mapWith(Number) })
     .from(projects)
-    .where(and(...conditions));
+    .where(and(...countConditions));
 
-  return { data, total: countResult.count };
+  return { data, total: countResult.count, nextCursor };
 }
 
 export async function getProject(projectId: string, userId: string) {

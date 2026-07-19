@@ -16,7 +16,17 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
 
-    const data = await getTasks(projectId, session.user.id);
+    const search = req.nextUrl.searchParams.get('search') || '';
+    const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '20', 10);
+
+    const data = await getTasks(
+      projectId,
+      session.user.id,
+      search,
+      cursor,
+      limit
+    );
     return NextResponse.json(data);
   } catch (error: unknown) {
     return NextResponse.json(

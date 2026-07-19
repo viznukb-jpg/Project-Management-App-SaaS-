@@ -33,10 +33,30 @@ export async function POST(req: NextRequest) {
     await checkTaskAccess(taskId, session.user.id);
 
     // Generate unique path
-    const fileExt = fileName.split('.').pop();
+    const fileExt = fileName.split('.').pop()?.toLowerCase();
+
+    // File type validation
+    const allowedExts = ['pdf', 'doc', 'docx', 'txt'];
+    if (!fileExt || !allowedExts.includes(fileExt)) {
+      return NextResponse.json(
+        {
+          error:
+            'Invalid file format. Only PDF, DOC, DOCX, and TXT are allowed.',
+        },
+        { status: 400 }
+      );
+    }
+
     const filePath = `tasks/${taskId}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     const supabase = getServerSupabase();
+
+    // Ensure the bucket exists (will silently fail if it already exists)
+    try {
+      await supabase.storage.createBucket('attachments', { public: true });
+    } catch (e) {
+      // Ignore error if bucket already exists
+    }
 
     // Create signed upload URL
     const { data, error } = await supabase.storage

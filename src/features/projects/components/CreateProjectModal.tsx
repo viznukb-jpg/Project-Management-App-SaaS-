@@ -90,7 +90,7 @@ export function CreateProjectModal() {
                 {...register('name')}
               />
               {errors.name && (
-                <p className="text-sm text-red-500">{errors.name.message}</p>
+                <p className="text-red-500 text-sm">{errors.name.message}</p>
               )}
             </div>
             <div className="space-y-2">

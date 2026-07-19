@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 
 export type Project = {
   id: string;
@@ -6,17 +11,30 @@ export type Project = {
   description: string | null;
   status: 'ACTIVE' | 'ARCHIVED' | 'COMPLETED';
   workspaceId: string;
+  createdAt?: string; // It's returned from API
 };
 
-export function useProjects(workspaceId: string | null) {
-  return useQuery<Project[]>({
-    queryKey: ['projects', workspaceId],
-    queryFn: async () => {
-      if (!workspaceId) return [];
-      const res = await fetch(`/api/projects?workspaceId=${workspaceId}`);
+export function useProjects(workspaceId: string | null, search?: string) {
+  return useInfiniteQuery({
+    queryKey: ['projects', workspaceId, search],
+    queryFn: async ({ pageParam }) => {
+      if (!workspaceId) throw new Error('No workspaceId');
+
+      const params = new URLSearchParams({ workspaceId });
+      if (search) params.set('search', search);
+      if (pageParam) params.set('cursor', pageParam);
+      params.set('limit', '10');
+
+      const res = await fetch(`/api/projects?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch projects');
-      return res.json();
+      return res.json() as Promise<{
+        data: Project[];
+        total: number;
+        nextCursor: string | null;
+      }>;
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+    initialPageParam: undefined as string | undefined,
     enabled: !!workspaceId,
   });
 }

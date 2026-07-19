@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from '@tanstack/react-query';
 import { TaskFormValues } from './components/TaskFormModal';
 
 export type Task = {
@@ -6,19 +11,27 @@ export type Task = {
   projectId: string;
   title: string;
   description: string | null;
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   position: number;
+  assigneeId?: string | null;
 };
 
-export function useTasks(projectId: string) {
-  return useQuery<Task[]>({
-    queryKey: ['tasks', projectId],
-    queryFn: async () => {
-      const res = await fetch(`/api/tasks?projectId=${projectId}`);
+export function useTasks(projectId: string, search = '') {
+  return useInfiniteQuery({
+    queryKey: ['tasks', projectId, search],
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({ projectId });
+      if (search) params.set('search', search);
+      if (pageParam) params.set('cursor', pageParam);
+      params.set('limit', '20');
+
+      const res = await fetch(`/api/tasks?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch tasks');
-      return res.json();
+      return res.json() as Promise<{ data: Task[]; nextCursor: string | null }>;
     },
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+    initialPageParam: undefined as string | undefined,
   });
 }
 

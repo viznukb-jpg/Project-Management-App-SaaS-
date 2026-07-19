@@ -18,14 +18,14 @@ export async function GET(req: NextRequest) {
     }
 
     const search = req.nextUrl.searchParams.get('search') || undefined;
-    const page = parseInt(req.nextUrl.searchParams.get('page') || '1', 10);
+    const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10);
 
     const data = await getProjects(
       workspaceId,
       session.user.id,
       search,
-      page,
+      cursor,
       limit
     );
     return NextResponse.json(data);

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/Button';
-import { Edit2, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
 import { ProjectFormModal } from './ProjectFormModal';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { Project, useUpdateProject, useDeleteProject } from '../hooks';
@@ -50,7 +51,7 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
       onSuccess: () => {
         setIsDeleteOpen(false);
         toast.success('Project deleted successfully');
-        router.push('/dashboard');
+        router.push('/dashboard/projects');
       },
       onError: (err) => {
         toast.error(err.message);
@@ -63,9 +64,21 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
 
   return (
     <>
-      <header className="flex-none p-6 pb-4 border-b border-slate-200 relative flex flex-col items-center justify-center text-center">
-        <div className="flex items-center justify-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
+      <header className="relative flex flex-col flex-none justify-center items-center p-6 pb-4 border-slate-200 border-b text-center">
+        <div className="top-5 left-6 absolute">
+          <Link href="/dashboard/projects">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-500 hover:text-slate-900 px-2"
+            >
+              <ArrowLeft className="mr-2 w-4 h-4" />
+              Back
+            </Button>
+          </Link>
+        </div>
+        <div className="flex justify-center items-center gap-3">
+          <h1 className="font-bold text-slate-900 text-2xl">{project.name}</h1>
           <span
             className={`text-xs px-2 py-1 rounded-full font-medium ${
               project.status === 'ACTIVE'
@@ -79,7 +92,7 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
           </span>
         </div>
 
-        <div className="mt-2 flex flex-col items-center justify-center max-w-2xl px-4 w-full">
+        <div className="flex flex-col justify-center items-center mt-2 px-4 w-full max-w-2xl">
           <p
             className={`text-slate-500 w-full text-center ${
               !isDescExpanded && isDescLong
@@ -92,14 +105,14 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
           {isDescLong && (
             <button
               onClick={() => setIsDescExpanded(!isDescExpanded)}
-              className="text-xs text-blue-600 hover:text-blue-800 mt-2 font-medium transition-colors"
+              className="mt-2 font-medium text-blue-600 hover:text-blue-800 text-xs transition-colors"
             >
               {isDescExpanded ? 'Show less' : 'Show more'}
             </button>
           )}
         </div>
 
-        <div className="absolute right-6 top-6 flex items-center gap-2">
+        <div className="top-6 right-6 absolute flex items-center gap-2">
           {canEdit && (
             <Button
               variant="outline"
@@ -107,7 +120,7 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
               onClick={() => setIsEditOpen(true)}
               className="text-slate-600"
             >
-              <Edit2 className="w-4 h-4 mr-2" />
+              <Edit2 className="mr-2 w-4 h-4" />
               Edit
             </Button>
           )}
@@ -116,9 +129,9 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
               variant="outline"
               size="sm"
               onClick={() => setIsDeleteOpen(true)}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-transparent hover:border-red-200"
+              className="hover:bg-red-50 border-transparent hover:border-red-200 text-red-600 hover:text-red-700"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="mr-2 w-4 h-4" />
               Delete
             </Button>
           )}

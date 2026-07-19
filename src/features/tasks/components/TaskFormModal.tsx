@@ -20,12 +20,15 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useWorkspaceStore } from '@/shared/store/workspace';
 
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().max(5000).optional().nullable(),
-  status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
+  status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE']).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  assigneeId: z.string().optional().nullable(),
 });
 
 export type TaskFormValues = z.infer<typeof formSchema>;
@@ -41,6 +44,22 @@ export function TaskFormModal({
   onSubmit: (data: TaskFormValues) => void;
   initialData?: Partial<TaskFormValues> | null;
 }) {
+  const { activeWorkspaceId } = useWorkspaceStore();
+
+  const { data: members } = useQuery({
+    queryKey: ['workspaceMembers', activeWorkspaceId],
+    queryFn: async () => {
+      if (!activeWorkspaceId) return [];
+      const res = await fetch(
+        `/api/workspaces/${activeWorkspaceId}/members?limit=1000`
+      );
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    },
+    enabled: !!activeWorkspaceId && isOpen,
+  });
+
   const {
     register,
     handleSubmit,
@@ -55,6 +74,7 @@ export function TaskFormModal({
       description: '',
       status: 'TODO',
       priority: 'MEDIUM',
+      assigneeId: null,
     },
   });
 
@@ -66,6 +86,7 @@ export function TaskFormModal({
           description: initialData.description || '',
           status: initialData.status || 'TODO',
           priority: initialData.priority || 'MEDIUM',
+          assigneeId: initialData.assigneeId || null,
         });
       } else {
         reset({
@@ -73,6 +94,7 @@ export function TaskFormModal({
           description: '',
           status: 'TODO',
           priority: 'MEDIUM',
+          assigneeId: null,
         });
       }
     }
@@ -112,7 +134,10 @@ export function TaskFormModal({
             <Select
               value={watch('status')}
               onValueChange={(val) =>
-                setValue('status', val as 'TODO' | 'IN_PROGRESS' | 'DONE')
+                setValue(
+                  'status',
+                  val as 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE'
+                )
               }
             >
               <SelectTrigger>
@@ -121,7 +146,47 @@ export function TaskFormModal({
               <SelectContent>
                 <SelectItem value="TODO">To Do</SelectItem>
                 <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="REVIEW">Review</SelectItem>
                 <SelectItem value="DONE">Done</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Assignee</Label>
+            <Select
+              value={watch('assigneeId') || 'unassigned'}
+              onValueChange={(val) =>
+                setValue('assigneeId', val === 'unassigned' ? null : val)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select an assignee">
+                  {(() => {
+                    const assigneeId = watch('assigneeId');
+                    if (!assigneeId || assigneeId === 'unassigned')
+                      return 'Unassigned';
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const selected = members?.find(
+                      (m: any) => m.user.id === assigneeId
+                    )?.user;
+                    if (!selected) return assigneeId; // fallback while loading
+                    return selected.name
+                      ? `${selected.name} (${selected.email})`
+                      : selected.email;
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {members?.map((member: any) => (
+                  <SelectItem key={member.user.id} value={member.user.id}>
+                    {member.user.name
+                      ? `${member.user.name} (${member.user.email})`
+                      : member.user.email}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
