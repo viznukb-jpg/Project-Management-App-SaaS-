@@ -1,3 +1,4 @@
+import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
 import { notificationQueue } from '../queue';
 import { db } from '@/server/db';
 import { notifications } from '@/server/db/schema';
@@ -22,7 +23,7 @@ export async function markAsRead(notificationId: string, userId: string) {
   const notif = await db.query.notifications.findFirst({
     where: eq(notifications.id, notificationId),
   });
-  if (!notif || notif.userId !== userId) throw new Error('Unauthorized');
+  if (!notif || notif.userId !== userId) throw new UnauthorizedError();
 
   await db
     .update(notifications)

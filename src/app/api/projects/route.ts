@@ -1,43 +1,37 @@
+import { withRouteHandler } from '@/shared/utils/handleRoute';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
 import { getProjects, createProject } from '@/server/services/project.service';
 
-export async function GET(req: NextRequest) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export const GET = withRouteHandler(async (req: NextRequest) => {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const workspaceId = req.nextUrl.searchParams.get('workspaceId');
-    if (!workspaceId) {
-      return NextResponse.json(
-        { error: 'Workspace ID required' },
-        { status: 400 }
-      );
-    }
-
-    const search = req.nextUrl.searchParams.get('search') || undefined;
-    const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
-    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10);
-
-    const data = await getProjects(
-      workspaceId,
-      session.user.id,
-      search,
-      cursor,
-      limit
-    );
-    return NextResponse.json(data);
-  } catch (error: unknown) {
+  const workspaceId = req.nextUrl.searchParams.get('workspaceId');
+  if (!workspaceId) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { error: 'Workspace ID required' },
+      { status: 400 }
     );
   }
-}
 
-import { createProjectSchema } from '@/features/projects/schemas';
+  const search = req.nextUrl.searchParams.get('search') || undefined;
+  const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
+  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '12', 10);
+
+  const data = await getProjects(
+    workspaceId,
+    session.user.id,
+    search,
+    cursor,
+    limit
+  );
+  return NextResponse.json(data);
+});
+
+import { createProjectSchema } from '@/features/projects';
 
 // (skip to POST method)
 export async function POST(req: NextRequest) {

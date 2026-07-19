@@ -1,3 +1,4 @@
+import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { comments, tasks, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,7 +10,7 @@ async function checkTaskAccess(taskId: string, userId: string) {
       project: true,
     },
   });
-  if (!task) throw new Error('Task not found');
+  if (!task) throw new NotFoundError('Task not found');
 
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -17,7 +18,7 @@ async function checkTaskAccess(taskId: string, userId: string) {
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member) throw new Error('Unauthorized');
+  if (!member) throw new UnauthorizedError();
 
   return { task, member };
 }
@@ -48,7 +49,7 @@ export async function createComment(
   const { member } = await checkTaskAccess(taskId, userId);
 
   if (member.role === 'VIEWER') {
-    throw new Error('Unauthorized to comment');
+    throw new UnauthorizedError();
   }
 
   const [comment] = await db
@@ -67,7 +68,7 @@ export async function deleteComment(commentId: string, userId: string) {
   const comment = await db.query.comments.findFirst({
     where: eq(comments.id, commentId),
   });
-  if (!comment) throw new Error('Comment not found');
+  if (!comment) throw new NotFoundError('Comment not found');
 
   // Can only delete own comment (or if ADMIN/OWNER of workspace)
   const { member } = await checkTaskAccess(comment.taskId, userId);
@@ -77,7 +78,7 @@ export async function deleteComment(commentId: string, userId: string) {
     member.role !== 'OWNER' &&
     member.role !== 'ADMIN'
   ) {
-    throw new Error('Unauthorized to delete comment');
+    throw new UnauthorizedError();
   }
 
   await db.delete(comments).where(eq(comments.id, commentId));

@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { db } from '@/server/db';
 import { tasks } from '@/server/db/schema';
 import { eq } from 'drizzle-orm';
-import { CommentList } from '@/features/comments/components/CommentList';
+import { CommentList } from '@/features/comments';
 import Link from 'next/link';
 import { Button } from '@/shared/ui/Button';
 import { ArrowLeft } from 'lucide-react';

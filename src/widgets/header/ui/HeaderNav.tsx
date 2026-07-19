@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
+import { useActiveWorkspaceRole } from '@/features/workspaces';
 
 export function HeaderNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();

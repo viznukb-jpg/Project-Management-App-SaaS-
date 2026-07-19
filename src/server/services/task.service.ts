@@ -1,3 +1,4 @@
+import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { tasks, projects, workspaceMembers } from '@/server/db/schema';
 import { eq, and, or, ilike, gt } from 'drizzle-orm';
@@ -12,7 +13,7 @@ async function checkProjectAccess(
   const project = await db.query.projects.findFirst({
     where: eq(projects.id, projectId),
   });
-  if (!project) throw new Error('Project not found');
+  if (!project) throw new NotFoundError('Project not found');
 
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -20,9 +21,9 @@ async function checkProjectAccess(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member) throw new Error('Unauthorized');
+  if (!member) throw new UnauthorizedError();
   if (requireEdit && member.role === 'VIEWER') {
-    throw new Error('Unauthorized to edit tasks');
+    throw new UnauthorizedError();
   }
 
   return project;
@@ -48,22 +49,20 @@ export async function getTasks(
     );
   }
 
-  if (cursor) {
-    conditions.push(gt(tasks.position, Number(cursor)));
-  }
+  const page = cursor ? parseInt(cursor, 10) : 1;
+  const offset = (page - 1) * limit;
 
   const data = await db.query.tasks.findMany({
     where: and(...conditions),
     orderBy: (tasks, { asc }) => [asc(tasks.position)],
     limit: limit + 1,
+    offset,
   });
 
   let nextCursor: string | null = null;
   if (data.length > limit) {
-    const nextItem = data.pop();
-    if (nextItem) {
-      nextCursor = nextItem.position.toString();
-    }
+    data.pop();
+    nextCursor = (page + 1).toString();
   }
 
   return { data, nextCursor };
@@ -136,7 +135,7 @@ export async function updateTask(
   const task = await db.query.tasks.findFirst({
     where: eq(tasks.id, taskId),
   });
-  if (!task) throw new Error('Task not found');
+  if (!task) throw new NotFoundError('Task not found');
 
   const project = await checkProjectAccess(task.projectId, userId, true);
 
@@ -172,7 +171,7 @@ export async function deleteTask(taskId: string, userId: string) {
   const task = await db.query.tasks.findFirst({
     where: eq(tasks.id, taskId),
   });
-  if (!task) throw new Error('Task not found');
+  if (!task) throw new NotFoundError('Task not found');
 
   const project = await checkProjectAccess(task.projectId, userId, true);
 

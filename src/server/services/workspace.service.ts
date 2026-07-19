@@ -1,3 +1,4 @@
+import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { workspaces, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -59,7 +60,7 @@ export async function updateWorkspace(
   });
 
   if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError();
   }
 
   const [updated] = await db
@@ -86,7 +87,7 @@ export async function deleteWorkspace(workspaceId: string, userId: string) {
   });
 
   if (!member || member.role !== 'OWNER') {
-    throw new Error('Only the owner can delete the workspace');
+    throw new UnauthorizedError('Only the owner can delete the workspace');
   }
 
   await db.delete(workspaces).where(eq(workspaces.id, workspaceId));

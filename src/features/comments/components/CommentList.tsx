@@ -1,23 +1,14 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
 import { Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
-import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
-
-type Comment = {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: {
-    id: string;
-    name: string;
-  };
-};
+import { useActiveWorkspaceRole } from '@/features/workspaces';
+import { formatDate } from '@/shared/utils/date';
+import { useComments, useCreateComment, useDeleteComment } from '../hooks';
 
 export function CommentList({
   taskId,
@@ -30,54 +21,23 @@ export function CommentList({
   projectId?: string;
   isModal?: boolean;
 }) {
-  const queryClient = useQueryClient();
   const [content, setContent] = useState('');
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const role = useActiveWorkspaceRole();
   const canComment = role !== 'VIEWER';
 
-  const { data: comments, isLoading } = useQuery<Comment[]>({
-    queryKey: ['comments', taskId],
-    queryFn: async () => {
-      const res = await fetch(`/api/comments?taskId=${taskId}`);
-      if (!res.ok) throw new Error('Failed to fetch comments');
-      return res.json();
-    },
-  });
-
-  const addCommentMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const res = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, content }),
-      });
-      if (!res.ok) throw new Error('Failed to add comment');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
-      setContent('');
-    },
-  });
-
-  const deleteCommentMutation = useMutation({
-    mutationFn: async (commentId: string) => {
-      const res = await fetch(`/api/comments/${commentId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete comment');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
-      setCommentToDelete(null);
-    },
-  });
+  const { data: comments, isLoading } = useComments(taskId);
+  const addCommentMutation = useCreateComment(taskId);
+  const deleteCommentMutation = useDeleteComment(taskId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
-    addCommentMutation.mutate(content);
+    addCommentMutation.mutate(content, {
+      onSuccess: () => {
+        setContent('');
+      },
+    });
   };
 
   return (
@@ -103,7 +63,7 @@ export function CommentList({
                     {comment.user.name}
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    {new Date(comment.createdAt).toLocaleString()}
+                    {formatDate(comment.createdAt)}
                   </span>
                 </div>
                 <p className="text-slate-600 text-sm whitespace-pre-wrap break-words">
@@ -114,13 +74,15 @@ export function CommentList({
               {(currentUserId === comment.user.id ||
                 role === 'OWNER' ||
                 role === 'ADMIN') && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setCommentToDelete(comment.id)}
-                  className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                   disabled={deleteCommentMutation.isPending}
                 >
                   <Trash2 size={14} />
-                </button>
+                </Button>
               )}
             </div>
           ))

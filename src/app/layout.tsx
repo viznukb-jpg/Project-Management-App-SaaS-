@@ -4,7 +4,7 @@ import { Geist } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { QueryProvider } from '@/shared/providers/QueryProvider';
 import { Toaster } from 'sonner';
-import { Header } from '@/shared/ui/Header';
+import { Header } from '@/widgets/header';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 

@@ -5,6 +5,7 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query';
 import { TaskFormValues } from './components/TaskFormModal';
+import { taskKeys } from './queryKeys';
 
 export type Task = {
   id: string;
@@ -19,7 +20,7 @@ export type Task = {
 
 export function useTasks(projectId: string, search = '') {
   return useInfiniteQuery({
-    queryKey: ['tasks', projectId, search],
+    queryKey: taskKeys.list(projectId, search),
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({ projectId });
       if (search) params.set('search', search);
@@ -49,11 +50,12 @@ export function useCreateTask(projectId: string) {
       return res.json();
     },
     onMutate: async (newTask) => {
-      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
-      const previousTasks = queryClient.getQueryData<Task[]>([
-        'tasks',
-        projectId,
-      ]);
+      await queryClient.cancelQueries({ queryKey: taskKeys.all(projectId) });
+      const previous = queryClient.getQueriesData<{
+        pages: { data: Task[]; nextCursor: string | null }[];
+      }>({
+        queryKey: taskKeys.all(projectId),
+      });
 
       const optimisticTask: Task = {
         id: `temp-${Date.now()}`,
@@ -65,19 +67,30 @@ export function useCreateTask(projectId: string) {
         position: 0, // Will be updated on actual fetch
       };
 
-      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
-        return [...(old || []), optimisticTask];
+      queryClient.setQueriesData<{
+        pages: { data: Task[]; nextCursor: string | null }[];
+      }>({ queryKey: taskKeys.all(projectId) }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p, index) => {
+            if (index === 0) {
+              return { ...p, data: [optimisticTask, ...p.data] };
+            }
+            return p;
+          }),
+        };
       });
 
-      return { previousTasks };
+      return { previous };
     },
     onError: (err, newTask, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks', projectId], context.previousTasks);
-      }
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
     },
   });
 }
@@ -97,28 +110,37 @@ export function useUpdateTask(projectId: string) {
       return res.json();
     },
     onMutate: async (updatedTask) => {
-      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
-      const previousTasks = queryClient.getQueryData<Task[]>([
-        'tasks',
-        projectId,
-      ]);
-
-      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
-        if (!old) return [];
-        return old.map((t) =>
-          t.id === updatedTask.id ? { ...t, ...updatedTask } : t
-        );
+      await queryClient.cancelQueries({ queryKey: taskKeys.all(projectId) });
+      const previous = queryClient.getQueriesData<{
+        pages: { data: Task[]; nextCursor: string | null }[];
+      }>({
+        queryKey: taskKeys.all(projectId),
       });
 
-      return { previousTasks };
+      queryClient.setQueriesData<{
+        pages: { data: Task[]; nextCursor: string | null }[];
+      }>({ queryKey: taskKeys.all(projectId) }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            data: p.data.map((t) =>
+              t.id === updatedTask.id ? { ...t, ...updatedTask } : t
+            ),
+          })),
+        };
+      });
+
+      return { previous };
     },
     onError: (err, updatedTask, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks', projectId], context.previousTasks);
-      }
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
     },
   });
 }
@@ -135,26 +157,35 @@ export function useDeleteTask(projectId: string) {
       return res.json();
     },
     onMutate: async (taskId) => {
-      await queryClient.cancelQueries({ queryKey: ['tasks', projectId] });
-      const previousTasks = queryClient.getQueryData<Task[]>([
-        'tasks',
-        projectId,
-      ]);
-
-      queryClient.setQueryData<Task[]>(['tasks', projectId], (old) => {
-        if (!old) return [];
-        return old.filter((t) => t.id !== taskId);
+      await queryClient.cancelQueries({ queryKey: taskKeys.all(projectId) });
+      const previous = queryClient.getQueriesData<{
+        pages: { data: Task[]; nextCursor: string | null }[];
+      }>({
+        queryKey: taskKeys.all(projectId),
       });
 
-      return { previousTasks };
+      queryClient.setQueriesData<{
+        pages: { data: Task[]; nextCursor: string | null }[];
+      }>({ queryKey: taskKeys.all(projectId) }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            data: p.data.filter((t) => t.id !== taskId),
+          })),
+        };
+      });
+
+      return { previous };
     },
     onError: (err, taskId, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks', projectId], context.previousTasks);
-      }
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: taskKeys.all(projectId) });
     },
   });
 }

@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/shared/store/workspace';
+import { toast } from 'sonner';
 
 export type Role = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
@@ -56,5 +57,85 @@ export function useWorkspaceActivity(workspaceId: string) {
       return res.json();
     },
     enabled: !!workspaceId,
+  });
+}
+
+export function useCreateWorkspace() {
+  const queryClient = useQueryClient();
+  const { setActiveWorkspaceId } = useWorkspaceStore();
+
+  return useMutation({
+    mutationFn: async (wsName: string) => {
+      const res = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: wsName }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to create workspace');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      setActiveWorkspaceId(data.id);
+      toast.success('Workspace created and activated!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useUpdateWorkspace() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId } = useWorkspaceStore();
+
+  return useMutation({
+    mutationFn: async (newName: string) => {
+      if (!activeWorkspaceId) return;
+      const res = await fetch(`/api/workspaces/${activeWorkspaceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update workspace');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      toast.success('Workspace updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useDeleteWorkspace() {
+  const queryClient = useQueryClient();
+  const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspaceStore();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!activeWorkspaceId) return;
+      const res = await fetch(`/api/workspaces/${activeWorkspaceId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete workspace');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      setActiveWorkspaceId(''); // Clear active workspace
+      toast.success('Workspace deleted');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
   });
 }

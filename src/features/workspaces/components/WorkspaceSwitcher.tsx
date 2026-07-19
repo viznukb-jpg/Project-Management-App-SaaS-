@@ -1,7 +1,7 @@
 'use client';
 
 import { useWorkspaceStore } from '@/shared/store/workspace';
-import { useWorkspaces } from '@/features/workspaces/hooks';
+import { useWorkspaces } from '@/features/workspaces';
 import Link from 'next/link';
 import {
   DropdownMenu,

@@ -8,8 +8,8 @@ import {
   QueryClient,
   dehydrate,
 } from '@tanstack/react-query';
-import { KanbanBoard } from '@/features/tasks/components/KanbanBoard';
-import { ProjectDetailHeader } from '@/features/projects/components/ProjectDetailHeader';
+import { KanbanBoard } from '@/features/tasks';
+import { ProjectDetailHeader } from '@/features/projects';
 
 export default async function ProjectDetailPage({
   params,
@@ -38,7 +38,8 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto">
-      <ProjectDetailHeader project={project} />
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <ProjectDetailHeader project={project as any} />
 
       <HydrationBoundary state={dehydrate(queryClient)}>
         <div className="flex-1 min-h-[600px] p-6 bg-slate-50/50 flex flex-col">

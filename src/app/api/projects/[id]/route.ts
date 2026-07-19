@@ -1,3 +1,4 @@
+import { withRouteHandler } from '@/shared/utils/handleRoute';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
@@ -7,32 +8,21 @@ import {
   deleteProject,
 } from '@/server/services/project.service';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
+export const GET = withRouteHandler(
+  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const data = await getProject((await params).id, session.user.id);
     return NextResponse.json(data);
-  } catch (error: unknown) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
+);
 
-import { updateProjectSchema } from '@/features/projects/schemas';
+import { updateProjectSchema } from '@/features/projects';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
+export const PATCH = withRouteHandler(
+  async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -52,40 +42,5 @@ export async function PATCH(
       session.user.id
     );
     return NextResponse.json(data);
-  } catch (error: unknown) {
-    if (
-      error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === '23505'
-    ) {
-      return NextResponse.json(
-        { error: 'Project name already exists in this workspace' },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
-
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    await deleteProject((await params).id, session.user.id);
-    return NextResponse.json({ success: true });
-  } catch (error: unknown) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
-  }
-}
+);

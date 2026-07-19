@@ -6,7 +6,7 @@ import { Badge } from '@/shared/ui/Badge';
 import { Input } from '@/shared/ui/Input';
 import { Button } from '@/shared/ui/Button';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useProjects } from '@/features/projects/hooks';
+import { useProjects } from '@/features/projects';
 import { useState, useEffect } from 'react';
 
 type Project = {

@@ -166,9 +166,9 @@ export function TaskFormModal({
                     const assigneeId = watch('assigneeId');
                     if (!assigneeId || assigneeId === 'unassigned')
                       return 'Unassigned';
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                     const selected = members?.find(
-                      (m: any) => m.user.id === assigneeId
+                      (m) => m.user.id === assigneeId
                     )?.user;
                     if (!selected) return assigneeId; // fallback while loading
                     return selected.name

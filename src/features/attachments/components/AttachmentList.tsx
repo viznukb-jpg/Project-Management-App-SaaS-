@@ -1,28 +1,15 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
 import { Paperclip, Trash2, Download, Loader2 } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
 import { ConfirmModal } from '@/shared/ui/ConfirmModal';
-import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-type Attachment = {
-  id: string;
-  fileName: string;
-  fileUrl: string;
-  fileSize: number | null;
-  createdAt: string;
-  user: {
-    id: string;
-    name: string;
-  };
-};
+import { useActiveWorkspaceRole } from '@/features/workspaces';
+import {
+  useAttachments,
+  useDeleteAttachment,
+  useUploadAttachment,
+} from '../hooks';
 
 export function AttachmentList({
   taskId,
@@ -31,7 +18,6 @@ export function AttachmentList({
   taskId: string;
   currentUserId?: string;
 }) {
-  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(
     null
@@ -39,46 +25,9 @@ export function AttachmentList({
   const role = useActiveWorkspaceRole();
   const canAttach = role !== 'VIEWER';
 
-  const { data: attachments, isLoading } = useQuery<Attachment[]>({
-    queryKey: ['attachments', taskId],
-    queryFn: async () => {
-      const res = await fetch(`/api/attachments?taskId=${taskId}`);
-      if (!res.ok) throw new Error('Failed to fetch attachments');
-      return res.json();
-    },
-  });
-
-  const addAttachmentMutation = useMutation({
-    mutationFn: async (data: {
-      fileName: string;
-      fileUrl: string;
-      fileSize: number;
-    }) => {
-      const res = await fetch('/api/attachments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, ...data }),
-      });
-      if (!res.ok) throw new Error('Failed to save attachment info');
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attachments', taskId] });
-    },
-  });
-
-  const deleteAttachmentMutation = useMutation({
-    mutationFn: async (attachmentId: string) => {
-      const res = await fetch(`/api/attachments/${attachmentId}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error('Failed to delete attachment');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attachments', taskId] });
-      setAttachmentToDelete(null);
-    },
-  });
+  const { data: attachments, isLoading } = useAttachments(taskId);
+  const deleteAttachmentMutation = useDeleteAttachment(taskId);
+  const { uploadFile, isUploading } = useUploadAttachment(taskId);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,44 +35,7 @@ export function AttachmentList({
 
     try {
       setUploading(true);
-
-      // 1. Get Signed URL from server
-      const urlRes = await fetch('/api/attachments/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          taskId,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-        }),
-      });
-
-      if (!urlRes.ok) {
-        const errorData = await urlRes.json();
-        throw new Error(errorData.error || 'Failed to get upload URL');
-      }
-
-      const { token, path } = await urlRes.json();
-
-      // 2. Upload to Supabase using Signed URL
-      const { error: uploadError } = await supabase.storage
-        .from('attachments')
-        .uploadToSignedUrl(path, token, file);
-
-      if (uploadError) throw uploadError;
-
-      // 3. Get Public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('attachments').getPublicUrl(path);
-
-      // 4. Save metadata to our DB
-      await addAttachmentMutation.mutateAsync({
-        fileName: file.name,
-        fileUrl: publicUrl,
-        fileSize: file.size,
-      });
+      await uploadFile(file);
     } catch (error) {
       console.error('Upload error:', error);
       alert(error instanceof Error ? error.message : 'Failed to upload file.');
@@ -150,11 +62,20 @@ export function AttachmentList({
               key={attachment.id}
               className="group flex justify-between items-center bg-slate-50 p-2 border border-slate-100 rounded-md"
             >
-              <a
-                href={attachment.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 overflow-hidden hover:text-blue-600 transition-colors"
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(
+                      `/api/attachments/${attachment.id}`
+                    );
+                    if (!res.ok) throw new Error('Failed to get download URL');
+                    const { url } = await res.json();
+                    if (url) window.open(url, '_blank');
+                  } catch (err) {
+                    console.error('Error opening attachment:', err);
+                  }
+                }}
+                className="flex items-center gap-2 overflow-hidden hover:text-blue-600 transition-colors text-left"
               >
                 <div className="bg-white shadow-sm p-1.5 rounded">
                   <Download size={14} className="text-slate-400" />
@@ -170,18 +91,20 @@ export function AttachmentList({
                     • {attachment.user.name}
                   </span>
                 </div>
-              </a>
+              </button>
 
               {(currentUserId === attachment.user.id ||
                 role === 'OWNER' ||
                 role === 'ADMIN') && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setAttachmentToDelete(attachment.id)}
-                  className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500 transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-opacity h-8 w-8"
                   disabled={deleteAttachmentMutation.isPending}
                 >
                   <Trash2 size={14} />
-                </button>
+                </Button>
               )}
             </div>
           ))

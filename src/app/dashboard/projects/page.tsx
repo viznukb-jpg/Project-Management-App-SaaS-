@@ -1,5 +1,5 @@
-import { ProjectList } from '@/features/projects/components/ProjectList';
-import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
+import { ProjectList } from '@/features/projects';
+import { CreateProjectModal } from '@/features/projects';
 import { cookies, headers } from 'next/headers';
 import { auth } from '@/server/auth';
 import { getProjects } from '@/server/services/project.service';
@@ -8,11 +8,12 @@ import {
   QueryClient,
   dehydrate,
 } from '@tanstack/react-query';
+import { projectKeys } from '@/features/projects';
 
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string; limit?: string }>;
+  searchParams: Promise<{ search?: string }>;
 }) {
   const cookieStore = await cookies();
   const activeWorkspaceId = cookieStore.get('activeWorkspaceId')?.value;
@@ -24,20 +25,19 @@ export default async function ProjectsPage({
     const session = await auth.api.getSession({ headers: await headers() });
     if (session) {
       const search = resolvedSearchParams.search || '';
-      const page = parseInt(resolvedSearchParams.page || '1', 10);
-      const limit = parseInt(resolvedSearchParams.limit || '12', 10);
 
-      await queryClient.prefetchQuery({
-        queryKey: ['projects', activeWorkspaceId, search, page, limit],
+      await queryClient.prefetchInfiniteQuery({
+        queryKey: projectKeys.list(activeWorkspaceId, search),
         queryFn: async () => {
           return await getProjects(
             activeWorkspaceId,
             session.user.id,
             search,
-            page,
-            limit
+            undefined, // no cursor for initial page
+            12
           );
         },
+        initialPageParam: undefined,
       });
     }
   }

@@ -1,3 +1,4 @@
+import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { projects, workspaceMembers } from '@/server/db/schema';
 import { eq, and, ilike, or, sql, lt } from 'drizzle-orm';
@@ -8,7 +9,7 @@ export async function getProjects(
   userId: string,
   search?: string,
   cursor?: string | null,
-  limit = 10
+  limit = 12
 ) {
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -16,7 +17,7 @@ export async function getProjects(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member) throw new Error('Unauthorized');
+  if (!member) throw new UnauthorizedError();
 
   const conditions = [eq(projects.workspaceId, workspaceId)];
   if (search) {
@@ -28,22 +29,20 @@ export async function getProjects(
     );
   }
 
-  if (cursor) {
-    conditions.push(lt(projects.createdAt, new Date(cursor)));
-  }
+  const page = cursor ? parseInt(cursor, 10) : 1;
+  const offset = (page - 1) * limit;
 
   const data = await db.query.projects.findMany({
     where: and(...conditions),
     orderBy: (projects, { desc }) => [desc(projects.createdAt)],
     limit: limit + 1, // Fetch one extra to determine if there's a next page
+    offset,
   });
 
   let nextCursor: string | null = null;
   if (data.length > limit) {
-    const nextItem = data.pop(); // Remove the extra item
-    if (nextItem) {
-      nextCursor = nextItem.createdAt.toISOString();
-    }
+    data.pop(); // Remove the extra item
+    nextCursor = (page + 1).toString();
   }
 
   const countConditions = [eq(projects.workspaceId, workspaceId)];
@@ -68,7 +67,7 @@ export async function getProject(projectId: string, userId: string) {
   const project = await db.query.projects.findFirst({
     where: eq(projects.id, projectId),
   });
-  if (!project) throw new Error('Project not found');
+  if (!project) throw new NotFoundError('Project not found');
 
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -76,7 +75,7 @@ export async function getProject(projectId: string, userId: string) {
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member) throw new Error('Unauthorized');
+  if (!member) throw new UnauthorizedError();
 
   return project;
 }
@@ -93,7 +92,7 @@ export async function createProject(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member || member.role === 'VIEWER') throw new Error('Unauthorized');
+  if (!member || member.role === 'VIEWER') throw new UnauthorizedError();
 
   const [project] = await db
     .insert(projects)
@@ -126,7 +125,7 @@ export async function updateProject(
   const project = await db.query.projects.findFirst({
     where: eq(projects.id, projectId),
   });
-  if (!project) throw new Error('Project not found');
+  if (!project) throw new NotFoundError('Project not found');
 
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -134,7 +133,7 @@ export async function updateProject(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member || member.role === 'VIEWER') throw new Error('Unauthorized');
+  if (!member || member.role === 'VIEWER') throw new UnauthorizedError();
 
   const [updated] = await db
     .update(projects)
@@ -156,7 +155,7 @@ export async function deleteProject(projectId: string, userId: string) {
   const project = await db.query.projects.findFirst({
     where: eq(projects.id, projectId),
   });
-  if (!project) throw new Error('Project not found');
+  if (!project) throw new NotFoundError('Project not found');
 
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -165,7 +164,7 @@ export async function deleteProject(projectId: string, userId: string) {
     ),
   });
   if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
-    throw new Error('Unauthorized to delete project');
+    throw new UnauthorizedError();
   }
 
   await db.delete(projects).where(eq(projects.id, projectId));

@@ -1,7 +1,13 @@
+import {
+  UnauthorizedError,
+  NotFoundError,
+  AppError,
+} from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { workspaceMembers, users } from '@/server/db/schema';
-import { eq, and, sql, lt } from 'drizzle-orm';
+import { eq, and, sql, lt, inArray } from 'drizzle-orm';
 import { createAuditLog } from './audit.service';
+import { enqueueNotification } from './notification.service';
 
 export async function getWorkspaceMembers(
   workspaceId: string,
@@ -10,9 +16,8 @@ export async function getWorkspaceMembers(
 ) {
   const conditions = [eq(workspaceMembers.workspaceId, workspaceId)];
 
-  if (cursor) {
-    conditions.push(lt(workspaceMembers.createdAt, new Date(cursor)));
-  }
+  const page = cursor ? parseInt(cursor, 10) : 1;
+  const offset = (page - 1) * limit;
 
   const data = await db.query.workspaceMembers.findMany({
     where: and(...conditions),
@@ -27,14 +32,13 @@ export async function getWorkspaceMembers(
     },
     orderBy: (workspaceMembers, { desc }) => [desc(workspaceMembers.createdAt)],
     limit: limit + 1,
+    offset,
   });
 
   let nextCursor: string | null = null;
   if (data.length > limit) {
-    const nextItem = data.pop();
-    if (nextItem) {
-      nextCursor = nextItem.createdAt.toISOString();
-    }
+    data.pop();
+    nextCursor = (page + 1).toString();
   }
 
   const [countResult] = await db
@@ -60,7 +64,7 @@ export async function inviteMember(
   });
 
   if (!inviter || (inviter.role !== 'OWNER' && inviter.role !== 'ADMIN')) {
-    throw new Error('Unauthorized to invite members');
+    throw new UnauthorizedError();
   }
 
   // Find user by email
@@ -69,7 +73,7 @@ export async function inviteMember(
   });
 
   if (!user) {
-    throw new Error('User not found. They must register first.');
+    throw new NotFoundError('User not found. They must register first.');
   }
 
   // Check if already a member
@@ -81,7 +85,7 @@ export async function inviteMember(
   });
 
   if (existingMember) {
-    throw new Error('User is already a member of this workspace');
+    throw new AppError('User is already a member of this workspace', 400);
   }
 
   // Add member
@@ -101,6 +105,29 @@ export async function inviteMember(
     metadata: { newMemberId: newMember.id, role },
   });
 
+  await enqueueNotification(
+    user.id,
+    'MEMBER_INVITED',
+    `You were added to workspace as ${role}`
+  );
+
+  const admins = await db.query.workspaceMembers.findMany({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      inArray(workspaceMembers.role, ['OWNER', 'ADMIN'])
+    ),
+  });
+
+  await Promise.all(
+    admins.map((a) =>
+      enqueueNotification(
+        a.userId,
+        'MEMBER_JOINED',
+        `${user.name || user.email} joined the workspace`
+      )
+    )
+  );
+
   return newMember;
 }
 
@@ -119,7 +146,7 @@ export async function updateMemberRole(
   });
 
   if (!updater || updater.role !== 'OWNER') {
-    throw new Error('Only the owner can update roles');
+    throw new UnauthorizedError('Only the owner can update roles');
   }
 
   const [updatedMember] = await db
@@ -156,7 +183,7 @@ export async function removeMember(
   });
 
   if (!remover || (remover.role !== 'OWNER' && remover.role !== 'ADMIN')) {
-    throw new Error('Unauthorized to remove members');
+    throw new UnauthorizedError();
   }
 
   await db

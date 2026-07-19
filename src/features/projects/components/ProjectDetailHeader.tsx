@@ -10,7 +10,7 @@ import { ConfirmModal } from '@/shared/ui/ConfirmModal';
 import { Project, useUpdateProject, useDeleteProject } from '../hooks';
 import { UpdateProjectInput } from '../schemas';
 import { toast } from 'sonner';
-import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
+import { useActiveWorkspaceRole } from '@/features/workspaces';
 
 export function ProjectDetailHeader({ project }: { project: Project }) {
   const router = useRouter();
@@ -103,12 +103,14 @@ export function ProjectDetailHeader({ project }: { project: Project }) {
             {project.description}
           </p>
           {isDescLong && (
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => setIsDescExpanded(!isDescExpanded)}
-              className="mt-2 font-medium text-blue-600 hover:text-blue-800 text-xs transition-colors"
+              className="mt-2 font-medium text-blue-600 hover:text-blue-800 text-xs h-auto p-0"
             >
               {isDescExpanded ? 'Show less' : 'Show more'}
-            </button>
+            </Button>
           )}
         </div>
 

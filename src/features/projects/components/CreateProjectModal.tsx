@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createProjectSchema, CreateProjectInput } from '../schemas';
 import { useWorkspaceStore } from '@/shared/store/workspace';
-import { useActiveWorkspaceRole } from '@/features/workspaces/hooks';
+import { useActiveWorkspaceRole } from '@/features/workspaces';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,

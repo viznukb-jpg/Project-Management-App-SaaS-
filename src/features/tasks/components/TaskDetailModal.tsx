@@ -9,8 +9,8 @@ import {
 } from '@/shared/ui/Dialog';
 import { Button } from '@/shared/ui/Button';
 import { Badge } from '@/shared/ui/Badge';
-import { CommentList } from '@/features/comments/components/CommentList';
-import { AttachmentList } from '@/features/attachments/components/AttachmentList';
+import { CommentList } from '@/features/comments';
+import { AttachmentList } from '@/features/attachments';
 
 type Task = {
   id: string;

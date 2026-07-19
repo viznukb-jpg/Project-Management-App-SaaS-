@@ -5,12 +5,10 @@ import { workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getAuditLogs } from '@/server/services/audit.service';
 import { headers } from 'next/headers';
+import { withRouteHandler } from '@/shared/utils/handleRoute';
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
+export const GET = withRouteHandler(
+  async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,13 +30,5 @@ export async function GET(
 
     const logs = await getAuditLogs(workspaceId);
     return NextResponse.json(logs);
-  } catch (error: unknown) {
-    console.error('Failed to fetch activity logs:', error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Internal Server Error',
-      },
-      { status: 500 }
-    );
   }
-}
+);

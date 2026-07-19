@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
 import { UserAvatar } from '@/shared/ui/UserAvatar';
-import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
-import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { WorkspaceSwitcher } from '@/features/workspaces';
+import { NotificationBell } from '@/features/notifications';
 import { HeaderNav } from './HeaderNav';
 
 export async function Header() {

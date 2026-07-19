@@ -1,3 +1,4 @@
+import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { taskAttachments, tasks, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,7 +10,7 @@ export async function checkTaskAccess(taskId: string, userId: string) {
       project: true,
     },
   });
-  if (!task) throw new Error('Task not found');
+  if (!task) throw new NotFoundError('Task not found');
 
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
@@ -17,7 +18,7 @@ export async function checkTaskAccess(taskId: string, userId: string) {
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member) throw new Error('Unauthorized');
+  if (!member) throw new UnauthorizedError();
 
   return { task, member };
 }
@@ -47,7 +48,7 @@ export async function createAttachment(
   const { member } = await checkTaskAccess(taskId, userId);
 
   if (member.role === 'VIEWER') {
-    throw new Error('Unauthorized to attach files');
+    throw new UnauthorizedError();
   }
 
   const [attachment] = await db
@@ -68,7 +69,7 @@ export async function deleteAttachment(attachmentId: string, userId: string) {
   const attachment = await db.query.taskAttachments.findFirst({
     where: eq(taskAttachments.id, attachmentId),
   });
-  if (!attachment) throw new Error('Attachment not found');
+  if (!attachment) throw new NotFoundError('Attachment not found');
 
   const { member } = await checkTaskAccess(attachment.taskId, userId);
 
@@ -77,9 +78,19 @@ export async function deleteAttachment(attachmentId: string, userId: string) {
     member.role !== 'OWNER' &&
     member.role !== 'ADMIN'
   ) {
-    throw new Error('Unauthorized to delete attachment');
+    throw new UnauthorizedError();
   }
 
   await db.delete(taskAttachments).where(eq(taskAttachments.id, attachmentId));
   return true;
+}
+
+export async function getAttachment(attachmentId: string, userId: string) {
+  const attachment = await db.query.taskAttachments.findFirst({
+    where: eq(taskAttachments.id, attachmentId),
+  });
+  if (!attachment) throw new NotFoundError('Attachment not found');
+
+  await checkTaskAccess(attachment.taskId, userId);
+  return attachment;
 }

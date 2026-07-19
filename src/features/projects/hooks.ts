@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useInfiniteQuery,
 } from '@tanstack/react-query';
+import { projectKeys } from './queryKeys';
 
 export type Project = {
   id: string;
@@ -16,14 +17,14 @@ export type Project = {
 
 export function useProjects(workspaceId: string | null, search?: string) {
   return useInfiniteQuery({
-    queryKey: ['projects', workspaceId, search],
+    queryKey: projectKeys.list(workspaceId || '', search || ''),
     queryFn: async ({ pageParam }) => {
       if (!workspaceId) throw new Error('No workspaceId');
 
       const params = new URLSearchParams({ workspaceId });
       if (search) params.set('search', search);
       if (pageParam) params.set('cursor', pageParam);
-      params.set('limit', '10');
+      params.set('limit', '12');
 
       const res = await fetch(`/api/projects?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch projects');
@@ -67,11 +68,14 @@ export function useCreateProject(workspaceId: string | null) {
     },
     onMutate: async (newProject) => {
       if (!workspaceId) return;
-      await queryClient.cancelQueries({ queryKey: ['projects', workspaceId] });
-      const previousProjects = queryClient.getQueryData<Project[]>([
-        'projects',
-        workspaceId,
-      ]);
+      await queryClient.cancelQueries({
+        queryKey: projectKeys.all(workspaceId),
+      });
+      const previous = queryClient.getQueriesData<{
+        pages: { data: Project[]; nextCursor: string | null }[];
+      }>({
+        queryKey: projectKeys.all(workspaceId),
+      });
 
       const optimisticProject: Project = {
         id: `temp-${Date.now()}`,
@@ -81,23 +85,33 @@ export function useCreateProject(workspaceId: string | null) {
         workspaceId,
       };
 
-      queryClient.setQueryData<Project[]>(['projects', workspaceId], (old) => {
-        return [...(old || []), optimisticProject];
+      queryClient.setQueriesData<{
+        pages: { data: Project[]; nextCursor: string | null }[];
+      }>({ queryKey: projectKeys.all(workspaceId) }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p, index) => {
+            if (index === 0) {
+              return { ...p, data: [optimisticProject, ...p.data] };
+            }
+            return p;
+          }),
+        };
       });
 
-      return { previousProjects };
+      return { previous };
     },
     onError: (err, newProject, context) => {
-      if (context?.previousProjects && workspaceId) {
-        queryClient.setQueryData(
-          ['projects', workspaceId],
-          context.previousProjects
-        );
-      }
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
     onSettled: () => {
       if (workspaceId) {
-        queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
+        queryClient.invalidateQueries({
+          queryKey: projectKeys.all(workspaceId),
+        });
       }
     },
   });
@@ -122,25 +136,36 @@ export function useUpdateProject(workspaceId: string | null) {
     },
     onMutate: async (updatedProject) => {
       if (!workspaceId) return;
-      await queryClient.cancelQueries({ queryKey: ['projects', workspaceId] });
+      await queryClient.cancelQueries({
+        queryKey: projectKeys.all(workspaceId),
+      });
       await queryClient.cancelQueries({
         queryKey: ['project', updatedProject.id],
       });
 
-      const previousProjects = queryClient.getQueryData<Project[]>([
-        'projects',
-        workspaceId,
-      ]);
+      const previous = queryClient.getQueriesData<{
+        pages: { data: Project[]; nextCursor: string | null }[];
+      }>({
+        queryKey: projectKeys.all(workspaceId),
+      });
       const previousProject = queryClient.getQueryData<Project>([
         'project',
         updatedProject.id,
       ]);
 
-      queryClient.setQueryData<Project[]>(['projects', workspaceId], (old) => {
-        if (!old) return [];
-        return old.map((p) =>
-          p.id === updatedProject.id ? { ...p, ...updatedProject } : p
-        );
+      queryClient.setQueriesData<{
+        pages: { data: Project[]; nextCursor: string | null }[];
+      }>({ queryKey: projectKeys.all(workspaceId) }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            data: p.data.map((pr) =>
+              pr.id === updatedProject.id ? { ...pr, ...updatedProject } : pr
+            ),
+          })),
+        };
       });
 
       queryClient.setQueryData<Project>(
@@ -151,15 +176,12 @@ export function useUpdateProject(workspaceId: string | null) {
         }
       );
 
-      return { previousProjects, previousProject };
+      return { previous, previousProject };
     },
     onError: (err, updatedProject, context) => {
-      if (workspaceId && context?.previousProjects) {
-        queryClient.setQueryData(
-          ['projects', workspaceId],
-          context.previousProjects
-        );
-      }
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       if (context?.previousProject) {
         queryClient.setQueryData(
           ['project', updatedProject.id],
@@ -169,7 +191,9 @@ export function useUpdateProject(workspaceId: string | null) {
     },
     onSettled: (data, err, updatedProject) => {
       if (workspaceId) {
-        queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
+        queryClient.invalidateQueries({
+          queryKey: projectKeys.all(workspaceId),
+        });
       }
       queryClient.invalidateQueries({
         queryKey: ['project', updatedProject.id],
@@ -194,31 +218,41 @@ export function useDeleteProject(workspaceId: string | null) {
     },
     onMutate: async (projectId) => {
       if (!workspaceId) return;
-      await queryClient.cancelQueries({ queryKey: ['projects', workspaceId] });
-
-      const previousProjects = queryClient.getQueryData<Project[]>([
-        'projects',
-        workspaceId,
-      ]);
-
-      queryClient.setQueryData<Project[]>(['projects', workspaceId], (old) => {
-        if (!old) return [];
-        return old.filter((p) => p.id !== projectId);
+      await queryClient.cancelQueries({
+        queryKey: projectKeys.all(workspaceId),
       });
 
-      return { previousProjects };
+      const previous = queryClient.getQueriesData<{
+        pages: { data: Project[]; nextCursor: string | null }[];
+      }>({
+        queryKey: projectKeys.all(workspaceId),
+      });
+
+      queryClient.setQueriesData<{
+        pages: { data: Project[]; nextCursor: string | null }[];
+      }>({ queryKey: projectKeys.all(workspaceId) }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((p) => ({
+            ...p,
+            data: p.data.filter((pr) => pr.id !== projectId),
+          })),
+        };
+      });
+
+      return { previous };
     },
     onError: (err, projectId, context) => {
-      if (workspaceId && context?.previousProjects) {
-        queryClient.setQueryData(
-          ['projects', workspaceId],
-          context.previousProjects
-        );
-      }
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
     },
     onSettled: () => {
       if (workspaceId) {
-        queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
+        queryClient.invalidateQueries({
+          queryKey: projectKeys.all(workspaceId),
+        });
       }
     },
   });

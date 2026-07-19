@@ -1,4 +1,4 @@
-import { ActivityList } from '@/features/workspaces/components/ActivityList';
+import { ActivityList } from '@/features/workspaces';
 
 export default function ActivityPage() {
   return (
