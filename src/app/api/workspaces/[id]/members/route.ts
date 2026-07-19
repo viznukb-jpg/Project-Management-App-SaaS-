@@ -16,7 +16,12 @@ export const GET = withRouteHandler(
     const cursor = req.nextUrl.searchParams.get('cursor') || undefined;
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '20', 10);
 
-    const members = await getWorkspaceMembers((await params).id, cursor, limit);
+    const members = await getWorkspaceMembers(
+      (await params).id,
+      session.user.id,
+      cursor,
+      limit
+    );
     return NextResponse.json(members);
   }
 );

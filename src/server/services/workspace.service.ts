@@ -51,7 +51,6 @@ export async function updateWorkspace(
   name: string,
   userId: string
 ) {
-  // Basic validation (must be owner/admin ideally, but keeping it simple for now)
   const member = await db.query.workspaceMembers.findFirst({
     where: and(
       eq(workspaceMembers.workspaceId, workspaceId),

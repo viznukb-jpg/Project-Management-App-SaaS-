@@ -32,23 +32,23 @@ export const GET = withRouteHandler(async (req: NextRequest) => {
 });
 
 import { createProjectSchema } from '@/features/projects';
+import { AppError } from '@/shared/utils/errors';
 
-// (skip to POST method)
-export async function POST(req: NextRequest) {
+export const POST = withRouteHandler(async (req: NextRequest) => {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json();
+  const parsed = createProjectSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const body = await req.json();
-    const parsed = createProjectSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
-
     const data = await createProject(
       parsed.data.workspaceId,
       parsed.data.name,
@@ -57,20 +57,15 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json(data);
   } catch (error: unknown) {
+    // Unique constraint: project name already exists in workspace
     if (
       error &&
       typeof error === 'object' &&
       'code' in error &&
       error.code === '23505'
     ) {
-      return NextResponse.json(
-        { error: 'Project name already exists in this workspace' },
-        { status: 409 }
-      );
+      throw new AppError('Project name already exists in this workspace', 409);
     }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    throw error; // re-throw; withRouteHandler will produce a safe 500
   }
-}
+});

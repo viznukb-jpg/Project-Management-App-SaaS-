@@ -21,7 +21,10 @@ export default function GlobalError({
             <h2 className="font-bold text-2xl text-red-600">
               Критична помилка
             </h2>
-            <p className="text-slate-500 mt-2 max-w-md">{error.message}</p>
+            <p className="text-slate-500 mt-2 max-w-md">
+              Виникла критична помилка додатку. Спробуйте оновити сторінку або
+              зверніться до підтримки.
+            </p>
             <Button onClick={() => reset()} className="mt-6">
               Спробувати ще раз
             </Button>

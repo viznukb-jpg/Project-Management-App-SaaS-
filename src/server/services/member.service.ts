@@ -11,9 +11,18 @@ import { enqueueNotification } from './notification.service';
 
 export async function getWorkspaceMembers(
   workspaceId: string,
+  userId: string,
   cursor?: string | null,
   limit = 20
 ) {
+  // Verify that the requesting user is actually a member of this workspace
+  const requestingMember = await db.query.workspaceMembers.findFirst({
+    where: and(
+      eq(workspaceMembers.workspaceId, workspaceId),
+      eq(workspaceMembers.userId, userId)
+    ),
+  });
+  if (!requestingMember) throw new UnauthorizedError();
   const conditions = [eq(workspaceMembers.workspaceId, workspaceId)];
 
   const page = cursor ? parseInt(cursor, 10) : 1;

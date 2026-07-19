@@ -92,7 +92,9 @@ export async function createProject(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member || member.role === 'VIEWER') throw new UnauthorizedError();
+  if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+    throw new UnauthorizedError();
+  }
 
   const [project] = await db
     .insert(projects)
@@ -133,7 +135,9 @@ export async function updateProject(
       eq(workspaceMembers.userId, userId)
     ),
   });
-  if (!member || member.role === 'VIEWER') throw new UnauthorizedError();
+  if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+    throw new UnauthorizedError();
+  }
 
   const [updated] = await db
     .update(projects)

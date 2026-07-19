@@ -1,7 +1,14 @@
-import { UnauthorizedError, NotFoundError } from '@/shared/utils/errors';
+import {
+  UnauthorizedError,
+  NotFoundError,
+  AppError,
+} from '@/shared/utils/errors';
 import { db } from '@/server/db';
 import { taskAttachments, tasks, workspaceMembers } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
+
+// Must match the path pattern produced by /api/attachments/upload-url
+const VALID_ATTACHMENT_PATH = /^tasks\/[\w-]+-[\w-]+\.(pdf|docx?|txt)$/i;
 
 export async function checkTaskAccess(taskId: string, userId: string) {
   const task = await db.query.tasks.findFirst({
@@ -49,6 +56,11 @@ export async function createAttachment(
 
   if (member.role === 'VIEWER') {
     throw new UnauthorizedError();
+  }
+
+  // Validate that the fileUrl is a path we issued — not an arbitrary string
+  if (!VALID_ATTACHMENT_PATH.test(data.fileUrl)) {
+    throw new AppError('Invalid file path', 400);
   }
 
   const [attachment] = await db

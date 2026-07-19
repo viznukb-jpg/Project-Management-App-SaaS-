@@ -16,7 +16,10 @@ export default function Error({
   return (
     <div className="p-8 text-center">
       <h2 className="font-bold text-xl text-red-600">Щось пішло не так</h2>
-      <p className="text-slate-500 mt-2">{error.message}</p>
+      <p className="text-slate-500 mt-2">
+        Виникла неочікувана помилка. Спробуйте ще раз або зверніться до
+        підтримки.
+      </p>
       <Button onClick={() => reset()} className="mt-4">
         Спробувати ще раз
       </Button>
